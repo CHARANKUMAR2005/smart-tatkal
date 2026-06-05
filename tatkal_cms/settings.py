@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'anymail',
     'rest_framework',
     'corsheaders',
     'accounts',
@@ -131,13 +132,20 @@ UNIVERSITY_ADDRESS = os.environ.get('UNIVERSITY_ADDRESS', 'Warangal, Telangana -
 UNIVERSITY_LOGO    = os.environ.get('UNIVERSITY_LOGO', 'images/logo.png')
 SUPPORT_EMAIL      = os.environ.get('SUPPORT_EMAIL', '')
 
-# ─── Gmail SMTP ───────────────────────────────────────────────────────────────
-# Set GMAIL_HOST_USER and GMAIL_APP_PASSWORD in .env (Gmail 2FA + App Password).
-# When both are blank, OTPs/emails are printed to the console (local dev).
+# ─── Email ────────────────────────────────────────────────────────────────────
+# Priority: SendGrid API (works on Render free tier) → Gmail SMTP → console
+_sendgrid_key   = os.environ.get('SENDGRID_API_KEY', '')
 _gmail_user     = os.environ.get('GMAIL_HOST_USER', '')
 _gmail_password = os.environ.get('GMAIL_APP_PASSWORD', '')
 
-if _gmail_user and _gmail_password:
+if _sendgrid_key:
+    # SendGrid via HTTPS — no SMTP port needed, works on all hosting platforms.
+    EMAIL_BACKEND  = 'anymail.backends.sendgrid.EmailBackend'
+    ANYMAIL        = {'SENDGRID_API_KEY': _sendgrid_key}
+    EMAIL_HOST_USER    = _gmail_user or 'noreply@tatkal.local'
+    DEFAULT_FROM_EMAIL = f'Tatkal CMS <{EMAIL_HOST_USER}>'
+elif _gmail_user and _gmail_password:
+    # Gmail SMTP fallback (works locally, blocked on Render free tier).
     EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST          = 'smtp.gmail.com'
     EMAIL_PORT          = 587
@@ -145,13 +153,12 @@ if _gmail_user and _gmail_password:
     EMAIL_HOST_USER     = _gmail_user
     EMAIL_HOST_PASSWORD = _gmail_password
     DEFAULT_FROM_EMAIL  = f'Tatkal CMS <{_gmail_user}>'
+    EMAIL_TIMEOUT       = 10
 else:
+    # Dev fallback — emails printed to console.
     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_HOST_USER    = 'noreply@tatkal.local'
     DEFAULT_FROM_EMAIL = 'Tatkal CMS <noreply@tatkal.local>'
-
-# Fail the SMTP connection attempt after 10 s instead of hanging the worker.
-EMAIL_TIMEOUT = 10
 
 # Fill SUPPORT_EMAIL from the sender address if not set explicitly
 if not SUPPORT_EMAIL:
