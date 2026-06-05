@@ -10,6 +10,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
+# Render automatically injects RENDER_EXTERNAL_HOSTNAME — add it without any dashboard config.
+RENDER_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+if RENDER_HOSTNAME and RENDER_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -104,12 +109,17 @@ SIMPLE_JWT = {
 }
 
 # ─── App base URL ─────────────────────────────────────────────────────────────
-# Used in email links and PDF QR codes. Set BASE_URL in .env / Render dashboard.
-BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8000').rstrip('/')
+# Falls back to RENDER_EXTERNAL_HOSTNAME when BASE_URL is not explicitly set.
+_render_base = f'https://{RENDER_HOSTNAME}' if RENDER_HOSTNAME else ''
+BASE_URL = os.environ.get('BASE_URL', _render_base or 'http://localhost:8000').rstrip('/')
 
 # ─── CSRF trusted origins ─────────────────────────────────────────────────────
-# Required for POST requests on any non-localhost domain (e.g. Render, custom domain).
-CSRF_TRUSTED_ORIGINS = [BASE_URL] if BASE_URL != 'http://localhost:8000' else []
+# Collect all non-localhost origins that need to POST to this app.
+CSRF_TRUSTED_ORIGINS = []
+if BASE_URL and not BASE_URL.startswith('http://localhost'):
+    CSRF_TRUSTED_ORIGINS.append(BASE_URL)
+if _render_base and _render_base != BASE_URL:
+    CSRF_TRUSTED_ORIGINS.append(_render_base)
 
 # ─── HTTPS proxy header (Render / most cloud platforms terminate SSL) ─────────
 # Lets Django know the original request was HTTPS even though gunicorn sees HTTP.
