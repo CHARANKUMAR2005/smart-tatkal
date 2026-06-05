@@ -27,7 +27,7 @@
 <body>
 <div class="wrap">
   <div class="hdr">
-    <h1>🎓 Kakatiya University</h1>
+    <h1>🎓 {{ UNIVERSITY_NAME }}</h1>
     <p>Smart Tatkal Certificate Management System</p>
   </div>
   <div class="body">
@@ -45,7 +45,7 @@
     {% if note %}<div class="note"><strong>Issue:</strong> {{ note }}</div>{% endif %}
     {% if staff_remarks %}<div class="note"><strong>Remarks:</strong> {{ staff_remarks }}</div>{% endif %}
     <p style="text-align:center">
-      <a class="btn" href="http://localhost:8000/applications/{{ application.application_id }}/">Fix &amp; Re-upload Documents</a>
+      <a class="btn" href="{{ BASE_URL }}/applications/{{ application.application_id }}/">Fix &amp; Re-upload Documents</a>
     </p>
   </div>
   <div class="ftr">

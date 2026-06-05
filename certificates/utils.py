@@ -145,7 +145,7 @@ def generate_certificate_pdf(application, certificate):
     # Footer
     c.setFillColorRGB(0.5, 0.5, 0.5)
     c.setFont("Helvetica", 8)
-    verify_url = f"http://localhost:8000/verify/{certificate.verification_code}/"
+    verify_url = f"{settings.BASE_URL}/verify/{certificate.verification_code}/"
     c.drawCentredString(width/2, 40, f"Verify at: {verify_url}")
     c.drawCentredString(width/2, 28, "This certificate is system generated and digitally signed.")
     

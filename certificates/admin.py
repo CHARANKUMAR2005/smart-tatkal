@@ -13,8 +13,8 @@ def send_status_mail(application, status):
     name      = application.student.user.get_full_name() or application.student.user.username
     cert      = application.get_certificate_type_display()
     short_id  = application.get_short_id()
-    from_addr = 'tatkalservice07@gmail.com'
-    app_url   = f'http://localhost:8000/applications/{application.application_id}/'
+    from_addr = settings.DEFAULT_FROM_EMAIL
+    app_url   = f'{settings.BASE_URL}/applications/{application.application_id}/'
 
     if status == 'approved':
         subject = f'Your {cert} Certificate is Approved - Tatkal CMS'
@@ -29,12 +29,12 @@ def send_status_mail(application, status):
         message = f'Your {cert} application (#{short_id}) has been REJECTED. Please contact the university office.'
         btn     = 'View Application'
 
-    plain = f'Dear {name},\n\n{message}\n\nView: {app_url}\n\nKakatiya University Tatkal CMS'
+    plain = f'Dear {name},\n\n{message}\n\nView: {app_url}\n\n{settings.UNIVERSITY_NAME} Tatkal CMS'
 
     html = f"""
 <div style="font-family:Arial,sans-serif;max-width:540px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
   <div style="background:{color};padding:28px 32px;text-align:center">
-    <h2 style="color:#fff;margin:0;font-size:1.2rem">Kakatiya University - Tatkal CMS</h2>
+    <h2 style="color:#fff;margin:0;font-size:1.2rem">{settings.UNIVERSITY_NAME} - Tatkal CMS</h2>
   </div>
   <div style="padding:28px 32px">
     <p style="font-size:1rem;font-weight:700;color:{color}">{title}</p>
@@ -48,7 +48,7 @@ def send_status_mail(application, status):
     <a href="{app_url}" style="display:inline-block;background:{color};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">{btn} →</a>
   </div>
   <div style="background:#f8fafc;padding:14px 32px;text-align:center;font-size:12px;color:#94a3b8">
-    Sent from tatkalservice07@gmail.com · Kakatiya University Tatkal CMS
+    Sent from {settings.SUPPORT_EMAIL} · {settings.UNIVERSITY_NAME} Tatkal CMS
   </div>
 </div>"""
 

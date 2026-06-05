@@ -256,7 +256,7 @@ def send_approval_email(student_email, student_name, cert_type, app_id, short_id
         f'{status_line}\n'
         + (f'Remarks: {remarks}\n' if remarks else '')
         + (f'Note: {note}\n' if note else '')
-        + f'\nLogin: http://localhost:8000/applications/{app_id}/\n\nKakatiya University Tatkal CMS'
+        + f'\nLogin: {settings.BASE_URL}/applications/{app_id}/\n\n{settings.UNIVERSITY_NAME} Tatkal CMS'
     )
 
     extra = ''
@@ -268,7 +268,7 @@ def send_approval_email(student_email, student_name, cert_type, app_id, short_id
     html_message = f"""
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
       <div style="background:{color};padding:24px 32px;text-align:center">
-        <h2 style="color:white;margin:0;font-size:1.3rem">Kakatiya University - Tatkal CMS</h2>
+        <h2 style="color:white;margin:0;font-size:1.3rem">{settings.UNIVERSITY_NAME} - Tatkal CMS</h2>
       </div>
       <div style="padding:28px 32px">
         <p style="font-size:1rem;font-weight:700;color:{color}">Application {status.upper()}</p>
@@ -279,10 +279,10 @@ def send_approval_email(student_email, student_name, cert_type, app_id, short_id
           <b>Application ID:</b> #{short_id}<br>
           <b>Certificate:</b> {cert_type}
         </div>
-        <a href="http://localhost:8000/applications/{app_id}/" style="display:inline-block;background:{color};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">View Application</a>
+        <a href="{settings.BASE_URL}/applications/{app_id}/" style="display:inline-block;background:{color};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">View Application</a>
       </div>
       <div style="background:#f8fafc;padding:12px 32px;text-align:center;font-size:0.78rem;color:#94a3b8">
-        Automated message from Kakatiya University Tatkal CMS. Do not reply.
+        Automated message from {settings.UNIVERSITY_NAME} Tatkal CMS. Do not reply.
       </div>
     </div>
     """

@@ -162,7 +162,7 @@ def update_status_view(request, app_id):
                 verification_code=generate_verification_code(),
                 issued_by=request.user
             )
-            verify_url = f"http://localhost:8000/verify/{cert.verification_code}/"
+            verify_url = f"{settings.BASE_URL}/verify/{cert.verification_code}/"
             qr_filename = f"qr_{cert.verification_code}.png"
             cert.qr_code = generate_qr_code(verify_url, qr_filename)
             cert.pdf_path = generate_certificate_pdf(app, cert)

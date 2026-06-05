@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def _build_html(status, full_name, cert_type, short_id, mode, note, remarks, app_url):
-    support = getattr(settings, 'EMAIL_HOST_USER', 'tatkalservice07@gmail.com')
+    support = getattr(settings, 'SUPPORT_EMAIL', settings.EMAIL_HOST_USER)
 
     if status == 'approved':
         top_color  = '#1a7f37'
@@ -64,7 +64,7 @@ def _build_html(status, full_name, cert_type, short_id, mode, note, remarks, app
   <!-- Header -->
   <div style="background:{top_color};padding:32px 36px;text-align:center">
     <div style="font-size:34px;margin-bottom:8px">🎓</div>
-    <h1 style="color:#fff;margin:0;font-size:20px;font-weight:800">Kakatiya University</h1>
+    <h1 style="color:#fff;margin:0;font-size:20px;font-weight:800">{settings.UNIVERSITY_NAME}</h1>
     <p style="color:rgba(255,255,255,.80);margin:6px 0 0;font-size:13px">
       Smart Tatkal Certificate Management System
     </p>
@@ -123,7 +123,7 @@ def _build_html(status, full_name, cert_type, short_id, mode, note, remarks, app
   <div style="background:#f8fafc;border-top:1px solid #e2e8f0;
               padding:18px 36px;text-align:center">
     <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6">
-      Automated notification from <strong>Kakatiya University Tatkal CMS</strong>.<br/>
+      Automated notification from <strong>{settings.UNIVERSITY_NAME} Tatkal CMS</strong>.<br/>
       Do not reply · Support:
       <a href="mailto:{support}" style="color:#0a2463;text-decoration:none">{support}</a>
     </p>
@@ -152,8 +152,8 @@ def send_status_email(application, new_status, note='', staff_remarks=''):
     cert_type     = application.get_certificate_type_display()
     full_name     = student_user.get_full_name() or student_user.username
     mode          = '⚡ Tatkal' if application.is_tatkal else 'Normal'
-    app_url       = f"http://localhost:8000/applications/{application.application_id}/"
-    from_email    = getattr(settings, 'DEFAULT_FROM_EMAIL', 'tatkalservice07@gmail.com')
+    app_url       = f"{settings.BASE_URL}/applications/{application.application_id}/"
+    from_email    = settings.DEFAULT_FROM_EMAIL
 
     if not student_email:
         print(f"[Email] ⚠️  No email address for student '{student_user.username}' — skipping.")
@@ -190,7 +190,7 @@ def send_status_email(application, new_status, note='', staff_remarks=''):
 
 def send_test_email(to_email):
     """Test SMTP config. Returns (success: bool, message: str)."""
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'tatkalservice07@gmail.com')
+    from_email = settings.DEFAULT_FROM_EMAIL
     html = f"""<div style="font-family:Arial;max-width:480px;margin:40px auto;
                 background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
       <div style="background:#0a2463;padding:20px;text-align:center">

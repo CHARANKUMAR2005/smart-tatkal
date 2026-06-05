@@ -26,7 +26,7 @@
 <body>
 <div class="wrap">
   <div class="hdr">
-    <h1>🎓 Kakatiya University</h1>
+    <h1>🎓 {{ UNIVERSITY_NAME }}</h1>
     <p>Smart Tatkal Certificate Management System</p>
   </div>
   <div class="body">
@@ -43,7 +43,7 @@
       </table>
     </div>
     <p style="text-align:center">
-      <a class="btn" href="http://localhost:8000/applications/{{ application.application_id }}/">Track Application</a>
+      <a class="btn" href="{{ BASE_URL }}/applications/{{ application.application_id }}/">Track Application</a>
     </p>
   </div>
   <div class="ftr">

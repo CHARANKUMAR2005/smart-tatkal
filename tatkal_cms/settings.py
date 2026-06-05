@@ -1,11 +1,14 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'tatkal-cms-secret-key-2024-university-management-system'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+load_dotenv(BASE_DIR / '.env')
+
+SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if h.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,11 +103,21 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
-# :::comment::: Gmail SMTP – set GMAIL_HOST_USER and GMAIL_APP_PASSWORD env vars.
-# With real credentials (Gmail 2FA + App Password) emails are delivered via SMTP.
-# Without them, OTPs are printed to the console for local development.
-_gmail_user     = os.environ.get('GMAIL_HOST_USER', 'tatkalservice07@gmail.com')
-_gmail_password = os.environ.get('GMAIL_APP_PASSWORD', 'rksk thja isiq sqkl')
+# ─── App base URL ─────────────────────────────────────────────────────────────
+# Used in email links and PDF QR codes. Set BASE_URL in .env for production.
+BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8000').rstrip('/')
+
+# ─── University branding ──────────────────────────────────────────────────────
+UNIVERSITY_NAME    = os.environ.get('UNIVERSITY_NAME', 'Kakatiya University')
+UNIVERSITY_ADDRESS = os.environ.get('UNIVERSITY_ADDRESS', 'Warangal, Telangana - 506009')
+UNIVERSITY_LOGO    = os.environ.get('UNIVERSITY_LOGO', 'images/logo.png')
+SUPPORT_EMAIL      = os.environ.get('SUPPORT_EMAIL', '')
+
+# ─── Gmail SMTP ───────────────────────────────────────────────────────────────
+# Set GMAIL_HOST_USER and GMAIL_APP_PASSWORD in .env (Gmail 2FA + App Password).
+# When both are blank, OTPs/emails are printed to the console (local dev).
+_gmail_user     = os.environ.get('GMAIL_HOST_USER', '')
+_gmail_password = os.environ.get('GMAIL_APP_PASSWORD', '')
 
 if _gmail_user and _gmail_password:
     EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
@@ -115,17 +128,20 @@ if _gmail_user and _gmail_password:
     EMAIL_HOST_PASSWORD = _gmail_password
     DEFAULT_FROM_EMAIL  = f'Tatkal CMS <{_gmail_user}>'
 else:
-    # :::comment::: Dev fallback – OTPs appear in the runserver console
     EMAIL_BACKEND      = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_HOST_USER    = 'noreply@tatkal.local'
     DEFAULT_FROM_EMAIL = 'Tatkal CMS <noreply@tatkal.local>'
 
-# Twilio SMS OTP configuration
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+# Fill SUPPORT_EMAIL from the sender address if not set explicitly
+if not SUPPORT_EMAIL:
+    SUPPORT_EMAIL = _gmail_user or 'noreply@tatkal.local'
+
+# ─── Twilio SMS OTP (optional) ────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID  = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN   = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 
-# Multi-University Configuration
+# ─── Multi-University Configuration ──────────────────────────────────────────
 UNIVERSITIES = {
     'jntu_hyd': {
         'name': 'JNTU Hyderabad',
@@ -149,15 +165,11 @@ UNIVERSITIES = {
     },
 }
 
-# Default University (can be overridden per student)
-DEFAULT_UNIVERSITY = 'jntu_hyd'
-UNIVERSITY_NAME = UNIVERSITIES[DEFAULT_UNIVERSITY]['name']
-UNIVERSITY_ADDRESS = UNIVERSITIES[DEFAULT_UNIVERSITY]['address']
-UNIVERSITY_LOGO = UNIVERSITIES[DEFAULT_UNIVERSITY]['logo']
+# ─── Payment Gateway ──────────────────────────────────────────────────────────
+RAZORPAY_KEY_ID     = os.environ.get('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
 
-RAZORPAY_KEY_ID = 'rzp_test_demo_key'
-RAZORPAY_KEY_SECRET = 'demo_secret'
-
+# ─── Certificate Fees ─────────────────────────────────────────────────────────
 NORMAL_FEE = {
     'bonafide': 50, 'study': 50, 'transfer': 500, 'course_completion': 100,
     'medium': 50, 'provisional': 200, 'migration': 300, 'income': 50,
@@ -169,11 +181,7 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# Template tag libraries
-# In templates, use {% load cert_tags %}
-
 # ─── Logging ──────────────────────────────────────────────────────────────────
-# Prints INFO+ from the certificates app (including email send/fail) to console.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -200,15 +208,14 @@ LOGGING = {
     },
 }
 
-# ─── Session Persistence (Fix: users stay logged in) ──────────────────────────
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 14          # 14 days
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False           # survive browser restart
-SESSION_SAVE_EVERY_REQUEST = True                 # refresh expiry on activity
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
+# ─── Session Persistence ──────────────────────────────────────────────────────
+SESSION_COOKIE_AGE            = 60 * 60 * 24 * 14
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST    = True
+SESSION_ENGINE                = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_HTTPONLY       = True
+SESSION_COOKIE_SAMESITE       = 'Lax'
 
-# ─── Authentication Backends (Fix: login(request, user) without backend error) ─
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
