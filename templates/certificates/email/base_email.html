@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block subject %}Tatkal CMS{% endblock %}</title>
+  <style>
+    body { margin:0; padding:0; background:#f4f6f9; font-family: 'Segoe UI', Arial, sans-serif; color:#333; }
+    .wrapper { max-width:600px; margin:32px auto; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.08); }
+    .header { background:#0a2463; padding:28px 32px; text-align:center; }
+    .header h1 { color:#f5c518; margin:0; font-size:22px; letter-spacing:0.5px; }
+    .header p  { color:#c8d6f0; margin:6px 0 0; font-size:13px; }
+    .badge { display:inline-block; padding:6px 18px; border-radius:20px; font-size:15px; font-weight:700; margin:24px auto 8px; }
+    .badge-approved { background:#d4edda; color:#155724; }
+    .badge-rejected { background:#f8d7da; color:#721c24; }
+    .badge-warning  { background:#fff3cd; color:#856404; }
+    .badge-info     { background:#d1ecf1; color:#0c5460; }
+    .content { padding:28px 32px; }
+    .content p  { line-height:1.7; margin:0 0 14px; }
+    .detail-box { background:#f8f9fc; border-left:4px solid #0a2463; border-radius:6px; padding:14px 18px; margin:18px 0; }
+    .detail-box table { width:100%; border-collapse:collapse; }
+    .detail-box td { padding:5px 0; font-size:14px; }
+    .detail-box td:first-child { color:#666; width:45%; }
+    .detail-box td:last-child { font-weight:600; }
+    .note-box { background:#fffde7; border-left:4px solid #f5c518; border-radius:6px; padding:12px 16px; margin:14px 0; font-size:14px; color:#5d4037; }
+    .btn { display:inline-block; background:#0a2463; color:#fff !important; padding:12px 28px; border-radius:6px; text-decoration:none; font-weight:600; margin-top:8px; }
+    .footer { background:#f0f2f6; text-align:center; padding:18px 32px; font-size:12px; color:#888; }
+    .footer a { color:#0a2463; text-decoration:none; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>🎓 Kakatiya University</h1>
+    <p>Smart Tatkal Certificate Management System</p>
+  </div>
+  <div class="content">
+    {% block content %}{% endblock %}
+    <div class="detail-box">
+      <table>
+        <tr><td>Application ID</td><td>#{{ short_id }}</td></tr>
+        <tr><td>Certificate Type</td><td>{{ cert_type }}</td></tr>
+        <tr><td>Student Name</td><td>{{ student.user.get_full_name }}</td></tr>
+        {% if application.is_tatkal %}<tr><td>Mode</td><td>⚡ Tatkal</td></tr>{% endif %}
+      </table>
+    </div>
+    {% if note %}
+    <div class="note-box"><strong>Staff Note:</strong> {{ note }}</div>
+    {% endif %}
+    {% if staff_remarks %}
+    <div class="note-box"><strong>Remarks:</strong> {{ staff_remarks }}</div>
+    {% endif %}
+    {% block action %}{% endblock %}
+  </div>
+  <div class="footer">
+    <p>This is an automated message from <strong>{{ SITE_NAME }}</strong>.<br/>
+    Please do not reply to this email. For help, contact
+    <a href="mailto:{{ SUPPORT_EMAIL }}">{{ SUPPORT_EMAIL }}</a></p>
+  </div>
+</div>
+</body>
+</html>

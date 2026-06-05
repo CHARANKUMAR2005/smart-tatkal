@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Application #{{ application.get_short_id }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <a href="javascript:history.back()" class="btn btn-outline btn-sm" style="margin-bottom:12px">← Back</a>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="page-title">Application #{{ application.get_short_id }}</div>
+    <span class="badge badge-{{ application.status }}" style="font-size:0.9rem;padding:6px 14px">{{ application.get_status_display }}</span>
+    {% if application.is_tatkal %}<span class="badge badge-tatkal" style="font-size:0.9rem;padding:6px 14px">⚡ TATKAL</span>{% endif %}
+  </div>
+</div>
+
+<!-- Status Stepper -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-body">
+    {% with status=application.status %}
+    <div class="status-steps">
+      {% for s, label in application.STATUS_CHOICES|default_if_none:"" %}{% endfor %}
+      <div class="step {% if status in 'submitted under_verification document_issue approved rejected generated delivered' %}done{% endif %}">
+        <div class="step-dot">✓</div><div class="step-label">Submitted</div>
+      </div>
+      <div class="step-line {% if status in 'under_verification approved generated delivered' %}done{% endif %}" style="flex:1;height:2px;background:{% if status in 'under_verification approved generated delivered' %}#059669{% else %}#e2e8f0{% endif %}"></div>
+      <div class="step {% if status in 'under_verification approved generated delivered' %}done {% endif %}{% if status == 'under_verification' %}current{% endif %}">
+        <div class="step-dot">🔍</div><div class="step-label">Verification</div>
+      </div>
+      <div class="step-line" style="flex:1;height:2px;background:{% if status in 'approved generated delivered' %}#059669{% else %}#e2e8f0{% endif %}"></div>
+      <div class="step {% if status in 'approved generated delivered' %}done {% endif %}{% if status == 'approved' %}current{% endif %}">
+        <div class="step-dot">✅</div><div class="step-label">Approved</div>
+      </div>
+      <div class="step-line" style="flex:1;height:2px;background:{% if status in 'generated delivered' %}#059669{% else %}#e2e8f0{% endif %}"></div>
+      <div class="step {% if status in 'generated delivered' %}done current{% endif %}">
+        <div class="step-dot">📄</div><div class="step-label">Generated</div>
+      </div>
+      <div class="step-line" style="flex:1;height:2px;background:{% if status == 'delivered' %}#059669{% else %}#e2e8f0{% endif %}"></div>
+      <div class="step {% if status == 'delivered' %}done current{% endif %}">
+        <div class="step-dot">🎉</div><div class="step-label">Delivered</div>
+      </div>
+    </div>
+    {% if application.status == 'rejected' %}
+    <div style="text-align:center;color:#dc2626;font-weight:600;margin-top:8px">❌ Application Rejected</div>
+    {% elif application.status == 'document_issue' %}
+    <div style="text-align:center;color:#d97706;font-weight:600;margin-top:8px">⚠️ Document Issue — Please resubmit</div>
+    {% endif %}
+    {% endwith %}
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+<div>
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Application Details</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Application ID</div>
+        <div style="font-family:monospace;font-weight:700;margin-top:2px">{{ application.application_id }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Certificate Type</div>
+        <div style="font-weight:700;margin-top:2px">{{ application.get_certificate_type_display }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Service</div>
+        <div style="margin-top:2px">{% if application.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Fee</div>
+        <div style="font-weight:700;font-size:1.1rem;margin-top:2px">₹{{ application.fee_amount }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Applied On</div>
+        <div style="margin-top:2px">{{ application.created_at|date:"d M Y H:i" }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Student</div>
+        <div style="font-weight:600;margin-top:2px">{{ application.student.user.get_full_name }}<br><span style="font-size:0.8rem;color:#64748b">{{ application.student.student_id }}</span></div></div>
+    </div>
+    {% if application.purpose %}
+    <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px">
+      <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase">Purpose</div>
+      <div style="margin-top:4px;font-size:0.9rem">{{ application.purpose }}</div>
+    </div>
+    {% endif %}
+    {% if application.staff_remarks %}
+    <div style="margin-top:12px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">
+      <div style="font-size:0.75rem;font-weight:700;color:#92400e;text-transform:uppercase">Staff Remarks</div>
+      <div style="margin-top:4px;font-size:0.9rem">{{ application.staff_remarks }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if certificate %}
+<div class="card" style="margin-bottom:20px;border:2px solid #059669">
+  <div class="card-header" style="background:#ecfdf5">
+    <div class="card-title" style="color:#065f46">✅ Certificate Ready!</div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">CERTIFICATE ID</div>
+        <div style="font-family:monospace;font-size:0.9rem;margin-top:2px">{{ certificate.verification_code }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">ISSUED ON</div>
+        <div style="margin-top:2px">{{ certificate.issued_at|date:"d M Y" }}</div></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/certificates/{{ certificate.certificate_id }}/download/" class="btn btn-success">⬇ Download Certificate PDF</a>
+      <a href="/verify/{{ certificate.verification_code }}/" class="btn btn-outline" target="_blank">🔍 Verify Certificate</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if payment %}
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Payment Details</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">AMOUNT</div><div style="font-weight:700;font-size:1.1rem">₹{{ payment.amount }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">STATUS</div><div class="badge badge-{{ payment.status }}" style="margin-top:4px">{{ payment.status|title }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">TRANSACTION ID</div><div style="font-family:monospace;font-size:0.85rem">{{ payment.transaction_id }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">METHOD</div><div>{{ payment.get_payment_method_display }}</div></div>
+    </div>
+    {% if payment.status == 'success' %}
+    <div style="margin-top:12px">
+      <a href="/receipt/{{ payment.payment_id }}/download/" class="btn btn-outline btn-sm">📄 Download Receipt</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% elif application.payment_status == 'pending' %}
+<div class="card" style="border:2px solid #f59e0b">
+  <div class="card-body" style="text-align:center;padding:24px">
+    <div style="font-size:2rem;margin-bottom:8px">💳</div>
+    <div style="font-weight:700;margin-bottom:4px">Payment Pending</div>
+    <div style="font-size:0.85rem;color:#64748b;margin-bottom:16px">Complete payment to process your application</div>
+    <a href="/payment/{{ application.application_id }}/" class="btn btn-primary">Pay ₹{{ application.fee_amount }} Now</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Status History -->
+<div class="card">
+  <div class="card-header"><div class="card-title">Status Timeline</div></div>
+  <div class="card-body" style="padding:0">
+    {% for h in history %}
+    <div style="padding:14px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#2563eb;margin-top:6px;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-{{ h.to_status }}">{{ h.to_status|title }}</span>
+          {% if h.from_status %}<span style="font-size:0.78rem;color:#94a3b8">from {{ h.from_status }}</span>{% endif %}
+          <span style="font-size:0.78rem;color:#94a3b8;margin-left:auto">{{ h.timestamp|date:"d M Y H:i" }}</span>
+        </div>
+        {% if h.note %}<div style="font-size:0.82rem;color:#475569;margin-top:4px">{{ h.note }}</div>{% endif %}
+        {% if h.changed_by %}<div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">by {{ h.changed_by.get_full_name|default:h.changed_by.username }}</div>{% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div style="padding:20px;text-align:center;color:#94a3b8;font-size:0.85rem">No history yet</div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+
+<!-- Sidebar -->
+<div>
+{% if request.user.role in 'staff admin' and application.status not in 'rejected delivered' %}
+<div class="card" style="margin-bottom:16px">
+  <div class="card-header" style="background:#0d1b3e;color:white;border-radius:12px 12px 0 0"><div style="font-weight:700">Quick Actions</div></div>
+  <div class="card-body">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <a href="/staff/applications/{{ application.application_id }}/status/" class="btn btn-primary">Update Status</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><div class="card-title" style="font-size:0.9rem">Student Info</div></div>
+  <div class="card-body">
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:0.85rem">
+      <div><span style="color:#94a3b8;font-size:0.75rem;display:block;font-weight:700">NAME</span>{{ application.student.user.get_full_name }}</div>
+      <div><span style="color:#94a3b8;font-size:0.75rem;display:block;font-weight:700">STUDENT ID</span>{{ application.student.student_id }}</div>
+      <div><span style="color:#94a3b8;font-size:0.75rem;display:block;font-weight:700">DEPT / YEAR</span>{{ application.student.get_department_display }} · Year {{ application.student.year }}</div>
+      <div><span style="color:#94a3b8;font-size:0.75rem;display:block;font-weight:700">EMAIL</span>{{ application.student.user.email }}</div>
+      <div><span style="color:#94a3b8;font-size:0.75rem;display:block;font-weight:700">PHONE</span>{{ application.student.user.phone }}</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

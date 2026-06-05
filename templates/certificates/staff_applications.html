@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}All Applications{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Applications Queue</div>
+  <div class="page-subtitle">Review and process student certificate applications</div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-body" style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:0.85rem;font-weight:700;color:#64748b">Filter:</span>
+    <a href="/staff/applications/" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline{% endif %}">All</a>
+    <a href="/staff/applications/?status=submitted" class="btn btn-sm {% if status_filter == 'submitted' %}btn-primary{% else %}btn-outline{% endif %}">📥 Submitted</a>
+    <a href="/staff/applications/?status=under_verification" class="btn btn-sm {% if status_filter == 'under_verification' %}btn-primary{% else %}btn-outline{% endif %}">🔍 Under Review</a>
+    <a href="/staff/applications/?status=document_issue" class="btn btn-sm {% if status_filter == 'document_issue' %}btn-primary{% else %}btn-outline{% endif %}">⚠️ Doc Issue</a>
+    <a href="/staff/applications/?status=approved" class="btn btn-sm {% if status_filter == 'approved' %}btn-primary{% else %}btn-outline{% endif %}">✅ Approved</a>
+    <a href="/staff/applications/?status=rejected" class="btn btn-sm {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline{% endif %}">❌ Rejected</a>
+    <a href="/staff/applications/?sort=tatkal" class="btn btn-sm btn-gold" style="margin-left:auto">⚡ Tatkal Queue</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>App ID</th><th>Student</th><th>Dept</th><th>Certificate</th><th>Service</th><th>Status</th><th>Payment</th><th>Fee</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for app in applications %}
+      <tr {% if app.is_tatkal %}style="background:#fff8f8"{% endif %}>
+        <td><code style="font-family:monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</code></td>
+        <td>
+          <div style="font-weight:600;font-size:0.88rem">{{ app.student.user.get_full_name }}</div>
+          <div style="font-size:0.75rem;color:#64748b">{{ app.student.student_id }}</div>
+        </td>
+        <td style="font-size:0.82rem">{{ app.student.department }}</td>
+        <td style="font-size:0.85rem">{{ app.get_certificate_type_display }}</td>
+        <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>
+        <td><span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span></td>
+        <td><span class="badge badge-{{ app.payment_status }}">{{ app.payment_status|title }}</span></td>
+        <td style="font-weight:600">₹{{ app.fee_amount }}</td>
+        <td style="font-size:0.78rem;color:#64748b">{{ app.created_at|date:"d M Y" }}</td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap">
+          <a href="/applications/{{ app.application_id }}/" class="btn btn-outline btn-sm">View</a>
+          {% if app.status not in 'rejected delivered generated' %}
+          <a href="/staff/applications/{{ app.application_id }}/status/" class="btn btn-primary btn-sm">Update</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8">No applications found</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

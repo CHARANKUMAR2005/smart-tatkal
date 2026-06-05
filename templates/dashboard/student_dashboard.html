@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block s_dash %}active{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Welcome back, {{ user.first_name }}! 👋</div>
+  <div class="page-subtitle">{{ profile.get_department_display }} · Year {{ profile.year }} · ID: {{ profile.student_id }}</div>
+  <div class="page-actions">
+    <a href="/apply/" class="btn btn-gold">⚡ Apply Certificate</a>
+    <a href="/applications/" class="btn btn-outline">📋 View All Applications</a>
+  </div>
+</div>
+
+<div class="stats-grid stagger">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#eff6ff">📋</div>
+    <div>
+      <div class="stat-label">Total Applications</div>
+      <div class="stat-value">{{ total_apps }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fffbeb">⏳</div>
+    <div>
+      <div class="stat-label">Pending</div>
+      <div class="stat-value">{{ pending_apps }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#ecfdf5">✅</div>
+    <div>
+      <div class="stat-label">Approved</div>
+      <div class="stat-value">{{ approved_apps }}</div>
+    </div>
+  </div>
+</div>
+
+{% if notifications %}
+<div class="card" style="margin-bottom:20px;border-left:4px solid #2563eb">
+  <div class="card-header">
+    <div class="card-title">🔔 Recent Notifications</div>
+    <a href="/notifications/" style="font-size:0.82rem;color:#2563eb">View all</a>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% for n in notifications %}
+    <div style="padding:12px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:1rem">{% if n.type == 'success' %}✅{% elif n.type == 'warning' %}⚠️{% else %}ℹ️{% endif %}</span>
+      <div>
+        <div style="font-weight:600;font-size:0.85rem">{{ n.title }}</div>
+        <div style="font-size:0.8rem;color:#64748b">{{ n.message }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Recent Applications</div>
+    <a href="/applications/" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% if applications %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>App ID</th><th>Certificate Type</th><th>Service</th><th>Status</th><th>Payment</th><th>Date</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for app in applications %}
+      <tr>
+        <td><code style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</code></td>
+        <td style="font-weight:600">{{ app.get_certificate_type_display }}</td>
+        <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>
+        <td><span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span></td>
+        <td><span class="badge badge-{{ app.payment_status }}">{{ app.payment_status|title }}</span></td>
+        <td style="color:#64748b;font-size:0.82rem">{{ app.created_at|date:"d M Y" }}</td>
+        <td><a href="/applications/{{ app.application_id }}/" class="btn btn-outline btn-sm">View</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div style="padding:40px;text-align:center;color:#94a3b8">
+      <div style="font-size:3rem;margin-bottom:12px">📭</div>
+      <div style="font-weight:600">No applications yet</div>
+      <div style="font-size:0.85rem;margin-top:4px">Apply for your first certificate!</div>
+      <a href="/apply/" class="btn btn-primary" style="margin-top:16px;display:inline-flex">⚡ Apply Now</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register | Tatkal CMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;min-height:100vh;background:#f1f5f9;display:flex;align-items:center;justify-content:center;padding:24px}
+.wrap{width:100%;max-width:720px;background:white;border-radius:18px;box-shadow:0 8px 40px rgba(0,0,0,0.10);overflow:hidden}
+.header{background:linear-gradient(135deg,#0d1b3e,#1a4db5);color:white;padding:28px 36px}
+.header h1{font-size:1.55rem;font-weight:800;margin:0}
+.header p{opacity:0.75;margin-top:4px;font-size:0.9rem}
+.step-bar{display:flex;align-items:center;gap:0;padding:0 36px;background:#f8fafc;border-bottom:1px solid #e2e8f0}
+.step{display:flex;align-items:center;gap:8px;padding:14px 0;font-size:0.82rem;font-weight:700;color:#94a3b8;position:relative}
+.step.active{color:#1a4db5}
+.step.done{color:#16a34a}
+.step-num{width:24px;height:24px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;color:#94a3b8;flex-shrink:0}
+.step.active .step-num{background:#1a4db5;color:white}
+.step.done .step-num{background:#16a34a;color:white}
+.step-sep{width:40px;height:2px;background:#e2e8f0;margin:0 8px}
+.body{padding:32px 36px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fg{margin-bottom:4px}
+label{display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;letter-spacing:.03em;text-transform:uppercase}
+input,select{width:100%;padding:11px 13px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.9rem;font-family:inherit;transition:border .15s}
+input:focus,select:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+.err{color:#dc2626;font-size:0.75rem;margin-top:3px}
+.btn{background:linear-gradient(135deg,#1a4db5,#2563eb);color:white;border:none;border-radius:10px;padding:13px 24px;font-weight:700;font-size:1rem;cursor:pointer;width:100%;font-family:inherit;margin-top:10px;transition:all .2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,.35)}
+.btn-grey{background:#64748b}
+.btn-grey:hover{box-shadow:0 8px 20px rgba(100,116,139,.35)}
+.alert{padding:11px 15px;border-radius:8px;font-size:0.85rem;margin-bottom:16px}
+.alert-err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.alert-info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.alert-warn{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.otp-box{text-align:center;padding:8px 0 24px}
+.otp-icon{font-size:3rem;margin-bottom:12px}
+.otp-email{font-weight:700;color:#1a4db5}
+.otp-input{width:200px;text-align:center;font-size:1.8rem;letter-spacing:10px;font-weight:800;padding:14px 10px;margin:20px auto 0;display:block;border:2px solid #2563eb;border-radius:12px}
+.otp-input:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+@media(max-width:580px){.grid{grid-template-columns:1fr}.step-sep{width:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>Student Registration</h1>
+    <p>Create your university certificate portal account</p>
+  </div>
+
+  <!-- Step Progress Bar -->
+  <div class="step-bar">
+    <div class="step {% if otp_step == 'form' %}active{% else %}done{% endif %}">
+      <div class="step-num">{% if otp_step != 'form' %}✓{% else %}1{% endif %}</div>
+      Fill Details
+    </div>
+    <div class="step-sep"></div>
+    <div class="step {% if otp_step == 'verify' %}active{% endif %}">
+      <div class="step-num">2</div>
+      Verify Email OTP
+    </div>
+    <div class="step-sep"></div>
+    <div class="step">
+      <div class="step-num">3</div>
+      Account Created
+    </div>
+  </div>
+
+  <div class="body">
+    {% if messages %}
+      {% for m in messages %}
+        <div class="alert {% if m.tags == 'error' %}alert-err{% elif m.tags == 'info' %}alert-info{% elif m.tags == 'warning' %}alert-warn{% else %}alert-info{% endif %}">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+
+    {% if otp_step == 'verify' %}
+    <!-- ── Step 2: OTP Verification ── -->
+    <div class="otp-box">
+      <div class="otp-icon">📧</div>
+      <p style="font-size:1rem;color:#374151;line-height:1.6">
+        We've sent a <strong>6-digit OTP</strong> to<br>
+        <span class="otp-email">{{ masked_email }}</span>
+      </p>
+      <p style="font-size:0.82rem;color:#64748b;margin-top:6px">Valid for 5 minutes. Check your spam folder if not received.</p>
+
+      <form method="post">{% csrf_token %}
+        <input type="hidden" name="action" value="verify_otp">
+        <input class="otp-input" name="otp" maxlength="6" placeholder="••••••" required autofocus inputmode="numeric" pattern="[0-9]{6}">
+        <button type="submit" class="btn" style="max-width:280px;margin:20px auto 0;display:block">✅ Verify & Create Account</button>
+      </form>
+
+      <form method="post" style="margin-top:14px">{% csrf_token %}
+        <input type="hidden" name="action" value="resend_reg_otp">
+        <button type="submit" class="btn btn-grey" style="max-width:200px;margin:0 auto;display:block;padding:10px">🔄 Resend OTP</button>
+      </form>
+
+      <p style="margin-top:20px;font-size:0.82rem;color:#94a3b8">
+        Wrong email? <a href="/register/" style="color:#2563eb;font-weight:600">Start over</a>
+      </p>
+    </div>
+
+    {% else %}
+    <!-- ── Step 1: Registration Form ── -->
+    {% if form.errors %}<div class="alert alert-err">Please fix the errors highlighted below.</div>{% endif %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="submit_form">
+      <div class="grid">
+        <div class="fg">
+          <label>First Name *</label>{{ form.first_name }}
+          <div class="err">{{ form.first_name.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Last Name *</label>{{ form.last_name }}
+          <div class="err">{{ form.last_name.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Email (Gmail preferred) *</label>{{ form.email }}
+          <div class="err">{{ form.email.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Phone *</label>{{ form.phone }}
+          <div class="err">{{ form.phone.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Username *</label>{{ form.username }}
+          <div class="err">{{ form.username.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Student ID / Hall Ticket *</label>{{ form.student_id }}
+          <div class="err">{{ form.student_id.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Department *</label>{{ form.department }}
+          <div class="err">{{ form.department.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Year *</label>{{ form.year }}
+          <div class="err">{{ form.year.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Password *</label>{{ form.password1 }}
+          <div class="err">{{ form.password1.errors }}</div>
+        </div>
+        <div class="fg">
+          <label>Confirm Password *</label>{{ form.password2 }}
+          <div class="err">{{ form.password2.errors }}</div>
+        </div>
+      </div>
+      <button type="submit" class="btn">Continue → Verify Email</button>
+    </form>
+    <p style="text-align:center;margin-top:16px;font-size:0.88rem;color:#64748b">
+      Already have an account? <a href="/login/" style="color:#2563eb;font-weight:600">Sign in</a>
+    </p>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Staff Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Staff Dashboard</div>
+  <div class="page-subtitle">Manage and process student certificate applications</div>
+  <div class="page-actions">
+    <a href="/staff/applications/?sort=tatkal" class="btn btn-gold">⚡ Tatkal Queue ({{ tatkal_pending }})</a>
+    <a href="/staff/applications/" class="btn btn-primary">📋 All Applications</a>
+  </div>
+</div>
+
+{% if tatkal_pending > 0 %}
+<div class="tatkal-banner">
+  <div class="icon">⚡</div>
+  <div><div class="label">{{ tatkal_pending }} Tatkal Applications Pending!</div>
+  <div class="text">Priority processing required. Target: 24-hour turnaround.</div></div>
+  <a href="/staff/applications/?sort=tatkal" class="btn btn-outline btn-sm" style="margin-left:auto;white-space:nowrap">Process Now</a>
+</div>
+{% endif %}
+
+<div class="stats-grid stagger">
+  <div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📥</div><div><div class="stat-label">New Applications</div><div class="stat-value">{{ total_pending }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5">✅</div><div><div class="stat-label">Approved Today</div><div class="stat-value">{{ total_approved }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#fef3c7">⚡</div><div><div class="stat-label">Tatkal Pending</div><div class="stat-value">{{ tatkal_pending }}</div></div></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">New Applications — Awaiting Review</div>
+    <a href="/staff/applications/" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>App ID</th><th>Student</th><th>Certificate</th><th>Service</th><th>Payment</th><th>Applied On</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for app in applications %}
+      <tr {% if app.is_tatkal %}style="background:#fff8f8"{% endif %}>
+        <td><code style="font-family:monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</code></td>
+        <td>
+          <div style="font-weight:600">{{ app.student.user.get_full_name }}</div>
+          <div style="font-size:0.75rem;color:#64748b">{{ app.student.student_id }}</div>
+        </td>
+        <td>{{ app.get_certificate_type_display }}</td>
+        <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>
+        <td><span class="badge badge-{{ app.payment_status }}">{{ app.payment_status|title }}</span></td>
+        <td style="font-size:0.82rem;color:#64748b">{{ app.created_at|date:"d M Y H:i" }}</td>
+        <td>
+          <a href="/applications/{{ app.application_id }}/" class="btn btn-outline btn-sm">Review</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8">No pending applications</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

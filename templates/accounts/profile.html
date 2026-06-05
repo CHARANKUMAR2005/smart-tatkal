@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block s_profile %}active{% endblock %}
+{% block content %}
+
+<style>
+.profile-wrap { display:grid; grid-template-columns:260px 1fr; gap:24px; align-items:start; }
+.pcard { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; }
+.pcard-header { background:linear-gradient(135deg,#0a2463,#1a4db5); padding:20px 24px; color:#fff; }
+.pcard-header h2 { margin:0; font-size:1.1rem; font-weight:700; }
+.pcard-header p  { margin:4px 0 0; font-size:0.82rem; opacity:.8; }
+.pcard-body { padding:24px; }
+.avatar-circle { width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#0a2463,#1a4db5);
+  display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:800;
+  color:#f5c518;margin:0 auto 12px; }
+.badge-dept { margin-top:12px;padding:6px 14px;background:#eff6ff;border-radius:8px;
+  font-size:0.8rem;font-weight:600;color:#1d4ed8;text-align:center; }
+.sid { margin-top:6px;font-size:0.78rem;color:#64748b;text-align:center; }
+.section-title { font-size:0.7rem;font-weight:700;letter-spacing:.08em;color:#94a3b8;
+  text-transform:uppercase;margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid #f1f5f9; }
+.section-title:first-child { margin-top:0; }
+.fg { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.fg.full { grid-template-columns:1fr; }
+.form-field { display:flex; flex-direction:column; gap:4px; }
+.form-field label { font-size:0.75rem;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:.04em; }
+.form-field input, .form-field select, .form-field textarea {
+  padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;
+  font-family:inherit;background:#fff;color:#1e293b;transition:border .15s; width:100%;box-sizing:border-box; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+  outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+.form-field input[readonly] { background:#f8fafc;color:#64748b; cursor:not-allowed; }
+.form-field textarea { resize:vertical; min-height:72px; }
+.form-field .hint { font-size:0.72rem;color:#94a3b8;margin-top:1px; }
+.err-box { background:#fee2e2;border-left:4px solid #ef4444;border-radius:8px;
+  padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#991b1b; }
+.ok-box  { background:#d1fae5;border-left:4px solid #10b981;border-radius:8px;
+  padding:12px 16px;margin-bottom:16px;font-size:0.85rem;color:#065f46; }
+.save-btn { width:100%;padding:12px;background:linear-gradient(135deg,#0a2463,#1a4db5);
+  color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;
+  cursor:pointer;font-family:inherit;margin-top:20px;transition:opacity .15s; }
+.save-btn:hover { opacity:.9; }
+@media(max-width:768px){ .profile-wrap{grid-template-columns:1fr;} .fg{grid-template-columns:1fr;} }
+</style>
+
+<div class="page-header">
+  <div class="page-title">My Profile</div>
+  <div class="page-subtitle">Manage your personal information and documents</div>
+</div>
+
+{% if messages %}
+  {% for m in messages %}
+    <div class="{% if 'success' in m.tags %}ok-box{% else %}err-box{% endif %}" style="margin-bottom:16px">{{ m }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="profile-wrap">
+
+  {# ── Left sidebar ──────────────────────────────────────────────── #}
+  <div class="pcard">
+    <div class="pcard-body" style="text-align:center">
+      {% if profile and profile.profile_photo %}
+        <img src="{{ profile.profile_photo.url }}"
+             style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin:0 auto 12px;display:block;border:3px solid #e2e8f0">
+      {% else %}
+        <div class="avatar-circle">
+          {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+        </div>
+      {% endif %}
+
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:2px">
+        {{ user.get_full_name|default:user.username }}
+      </div>
+      <div style="font-size:0.8rem;color:#64748b">@{{ user.username }}</div>
+      <div style="font-size:0.8rem;color:#64748b;margin-top:4px">{{ user.email }}</div>
+
+      {% if profile %}
+        <div class="badge-dept">
+          {{ profile.get_department_display }}
+          {% if profile.year %}· Year {{ profile.year }}{% endif %}
+        </div>
+        <div class="sid">Student ID: {{ profile.student_id }}</div>
+        {% if profile.roll_number %}
+          <div class="sid">Roll No: {{ profile.roll_number }}</div>
+        {% endif %}
+        {% if profile.course %}
+          <div class="sid">Course: {{ profile.course }}</div>
+        {% endif %}
+      {% else %}
+        <div style="margin-top:14px;padding:10px 14px;background:#fff3cd;border-radius:8px;font-size:0.8rem;color:#856404">
+          ⚠️ Profile not set up yet.<br>Fill in the form and click Save.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Right: full form ──────────────────────────────────────────── #}
+  <div class="pcard">
+    <div class="pcard-header">
+      <h2>Personal Information</h2>
+      <p>All changes are saved to your account immediately</p>
+    </div>
+    <div class="pcard-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="section-title">Basic Details</div>
+        <div class="fg">
+          <div class="form-field">
+            <label>First Name</label>
+            <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Enter first name">
+          </div>
+          <div class="form-field">
+            <label>Last Name</label>
+            <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Enter last name">
+          </div>
+          <div class="form-field">
+            <label>Email Address</label>
+            <input type="email" value="{{ user.email }}" readonly>
+          </div>
+          <div class="form-field">
+            <label>Phone Number</label>
+            <input type="text" name="phone" value="{{ user.phone }}" placeholder="10-digit mobile number">
+          </div>
+        </div>
+
+        <div class="section-title">Academic Details</div>
+        <div class="fg">
+          <div class="form-field">
+            <label>Department *</label>
+            <select name="department">
+              <option value="">-- Select Department --</option>
+              {% for val, label in dept_choices %}
+                <option value="{{ val }}" {% if profile and profile.department == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Year of Study *</label>
+            <select name="year">
+              {% for val, label in year_choices %}
+                <option value="{{ val }}" {% if profile and profile.year == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Roll Number</label>
+            <input type="text" name="roll_number" value="{% if profile %}{{ profile.roll_number }}{% endif %}" placeholder="e.g. 21CSE001">
+          </div>
+          <div class="form-field">
+            <label>Course</label>
+            <input type="text" name="course" value="{% if profile %}{{ profile.course }}{% endif %}" placeholder="e.g. B.Tech, MCA">
+          </div>
+          <div class="form-field">
+            <label>Admission Year</label>
+            <input type="number" name="admission_year" value="{% if profile and profile.admission_year %}{{ profile.admission_year }}{% endif %}" placeholder="e.g. 2022" min="2000" max="2030">
+          </div>
+          <div class="form-field">
+            <label>Date of Birth</label>
+            <input type="date" name="date_of_birth" value="{% if profile and profile.date_of_birth %}{{ profile.date_of_birth|date:'Y-m-d' }}{% endif %}">
+          </div>
+        </div>
+
+        <div class="section-title">Personal Details</div>
+        <div class="fg">
+          <div class="form-field">
+            <label>Father's Name</label>
+            <input type="text" name="father_name" value="{% if profile %}{{ profile.father_name }}{% endif %}" placeholder="Father's full name">
+          </div>
+          <div class="form-field">
+            <label>Mother's Name</label>
+            <input type="text" name="mother_name" value="{% if profile %}{{ profile.mother_name }}{% endif %}" placeholder="Mother's full name">
+          </div>
+          <div class="form-field">
+            <label>Aadhar Number</label>
+            <input type="text" name="aadhar_number" value="{% if profile %}{{ profile.aadhar_number }}{% endif %}" placeholder="12-digit Aadhar number" maxlength="12">
+          </div>
+        </div>
+
+        <div class="section-title">Address</div>
+        <div class="fg full">
+          <div class="form-field">
+            <label>Full Address</label>
+            <textarea name="address" placeholder="House No, Street, City, District, State, PIN">{% if profile %}{{ profile.address }}{% endif %}</textarea>
+          </div>
+        </div>
+
+        <div class="section-title">Documents</div>
+        <div class="fg">
+          <div class="form-field">
+            <label>Profile Photo</label>
+            {% if profile and profile.profile_photo %}
+              <p class="hint" style="font-size:0.8rem;color:#059669">✅ Photo uploaded. Upload new to replace.</p>
+            {% endif %}
+            <input type="file" name="profile_photo" accept="image/jpeg,image/png">
+            <span class="hint">JPEG or PNG, clear photo</span>
+          </div>
+          <div class="form-field">
+            <label>ID Card / Document</label>
+            {% if profile and profile.id_card %}
+              <p class="hint" style="font-size:0.8rem;color:#059669">✅ Document uploaded. Upload new to replace.</p>
+            {% endif %}
+            <input type="file" name="id_card" accept=".pdf,.jpg,.jpeg,.png">
+            <span class="hint">PDF, JPG, or PNG — Student ID / Aadhar / Fee receipt</span>
+          </div>
+        </div>
+
+        <button type="submit" class="save-btn">💾 Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

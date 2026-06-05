@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">💳 Complete Payment</div>
+  <div class="page-subtitle">Application #{{ application.get_short_id }} — {{ application.get_certificate_type_display }}</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
+<div>
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Order Summary</div></div>
+  <div class="card-body">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>Certificate Type</span><strong>{{ application.get_certificate_type_display }}</strong></div>
+      <div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>Service</span>{% if application.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</div>
+      {% if application.is_tatkal %}
+      <div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>Processing Time</span><strong style="color:#dc2626">24-48 Hours</strong></div>
+      {% else %}
+      <div style="display:flex;justify-content:space-between;font-size:0.9rem"><span>Processing Time</span><strong>5-7 Working Days</strong></div>
+      {% endif %}
+      <div style="border-top:1px solid #f1f5f9;padding-top:12px;display:flex;justify-content:space-between;font-size:1.1rem;font-weight:800">
+        <span>Total Amount</span><span style="color:#0d1b3e">₹{{ application.fee_amount }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if application.is_tatkal %}
+<div class="tatkal-banner" style="margin-bottom:20px">
+  <div class="icon">⚡</div>
+  <div><div class="label">Tatkal Application</div>
+  <div class="text">Priority processing — certificate ready in 24-48 hours</div></div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><div class="card-title">Payment Security</div></div>
+  <div class="card-body">
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:0.85rem;color:#475569">
+      <div style="display:flex;gap:8px">🔒 256-bit SSL encryption</div>
+      <div style="display:flex;gap:8px">🏦 Secured by Razorpay</div>
+      <div style="display:flex;gap:8px">📄 Instant receipt generation</div>
+      <div style="display:flex;gap:8px">✅ PCI DSS compliant</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div>
+<div class="card">
+  <div class="card-header" style="background:#0d1b3e;color:white;border-radius:12px 12px 0 0">
+    <div style="font-weight:700">Choose Payment Method</div>
+  </div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        {% for value, label in payment_methods %}{% endfor %}
+        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:2px solid #2563eb;border-radius:10px;background:#eff6ff">
+          <input type="radio" name="payment_method" value="upi" checked style="width:16px;height:16px">
+          <span style="font-size:1.2rem">📱</span>
+          <div><div style="font-weight:700">UPI Payment</div><div style="font-size:0.75rem;color:#64748b">Google Pay, PhonePe, Paytm</div></div>
+        </label>
+        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
+          <input type="radio" name="payment_method" value="debit_card" style="width:16px;height:16px">
+          <span style="font-size:1.2rem">💳</span>
+          <div><div style="font-weight:700">Debit Card</div><div style="font-size:0.75rem;color:#64748b">Visa, Mastercard, RuPay</div></div>
+        </label>
+        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
+          <input type="radio" name="payment_method" value="credit_card" style="width:16px;height:16px">
+          <span style="font-size:1.2rem">💰</span>
+          <div><div style="font-weight:700">Credit Card</div><div style="font-size:0.75rem;color:#64748b">All major cards accepted</div></div>
+        </label>
+        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
+          <input type="radio" name="payment_method" value="net_banking" style="width:16px;height:16px">
+          <span style="font-size:1.2rem">🏦</span>
+          <div><div style="font-weight:700">Net Banking</div><div style="font-size:0.75rem;color:#64748b">All major banks supported</div></div>
+        </label>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%">
+        Pay ₹{{ application.fee_amount }} Securely →
+      </button>
+      
+      <div style="text-align:center;margin-top:10px;font-size:0.78rem;color:#94a3b8">
+        Demo mode — no real payment processed
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

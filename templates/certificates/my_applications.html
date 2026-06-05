@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}My Applications{% endblock %}
+{% block s_apps %}active{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">My Applications</div>
+  <div class="page-subtitle">Track all your certificate requests</div>
+  <div class="page-actions">
+    <a href="/apply/" class="btn btn-gold">⚡ New Application</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    {% if applications %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>App ID</th><th>Certificate</th><th>Service</th><th>Status</th><th>Fee</th><th>Payment</th><th>Applied</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for app in applications %}
+      <tr>
+        <td><code style="font-family:monospace;background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:0.8rem">#{{ app.get_short_id }}</code></td>
+        <td><div style="font-weight:600">{{ app.get_certificate_type_display }}</div></td>
+        <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>
+        <td><span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span></td>
+        <td style="font-weight:600">₹{{ app.fee_amount }}</td>
+        <td><span class="badge badge-{{ app.payment_status }}">{{ app.payment_status|title }}</span></td>
+        <td style="font-size:0.82rem;color:#64748b">{{ app.created_at|date:"d M Y" }}</td>
+        <td style="display:flex;gap:6px">
+          <a href="/applications/{{ app.application_id }}/" class="btn btn-outline btn-sm">View</a>
+          {% if app.payment_status == 'pending' %}
+          <a href="/payment/{{ app.application_id }}/" class="btn btn-primary btn-sm">Pay</a>
+          {% endif %}
+          {% if app.status == 'generated' %}
+          <a href="/certificates/{{ app.certificate.certificate_id }}/download/" class="btn btn-success btn-sm">⬇ PDF</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div style="padding:60px;text-align:center;color:#94a3b8">
+      <div style="font-size:4rem;margin-bottom:16px">📭</div>
+      <div style="font-size:1.1rem;font-weight:600">No applications yet</div>
+      <div style="margin-top:8px;font-size:0.88rem">Apply for your first certificate to get started</div>
+      <a href="/apply/" class="btn btn-gold" style="margin-top:20px;display:inline-flex">⚡ Apply Now</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

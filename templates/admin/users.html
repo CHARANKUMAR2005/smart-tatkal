@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}User Management{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">User Management</div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Students ({{ students.count }})</div></div>
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Student ID</th><th>Dept</th><th>Year</th><th>Email</th><th>Phone</th></tr></thead>
+      <tbody>
+      {% for s in students %}
+      <tr>
+        <td style="font-weight:600">{{ s.user.get_full_name }}</td>
+        <td><code style="font-size:0.82rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">{{ s.student_id }}</code></td>
+        <td>{{ s.department }}</td>
+        <td>Year {{ s.year }}</td>
+        <td>{{ s.user.email }}</td>
+        <td>{{ s.user.phone }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8">No students registered</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div class="card-title">Staff ({{ staff.count }})</div></div>
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Staff ID</th><th>Designation</th><th>Email</th></tr></thead>
+      <tbody>
+      {% for s in staff %}
+      <tr>
+        <td style="font-weight:600">{{ s.user.get_full_name }}</td>
+        <td>{{ s.staff_id }}</td>
+        <td>{{ s.designation }}</td>
+        <td>{{ s.user.email }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8">No staff added</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

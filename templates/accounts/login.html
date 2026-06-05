@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login | Tatkal CMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;min-height:100vh;display:flex;background:#0d1b3e}
+.left-panel{flex:1;background:linear-gradient(135deg,#0d1b3e,#1a4db5 50%,#0d1b3e);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;position:relative;overflow:hidden}
+.left-panel::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 70% 30%,rgba(212,160,23,0.15),transparent 60%)}
+.crest{width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,#d4a017,#f5c842);display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;color:#0d1b3e;margin:0 auto 20px;box-shadow:0 0 40px rgba(212,160,23,0.4)}
+.features{margin-top:40px;display:flex;flex-direction:column;gap:14px;max-width:300px;position:relative;z-index:2}
+.feature{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,0.85);font-size:0.88rem}
+.fi{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.right-panel{width:480px;background:white;display:flex;align-items:center;justify-content:center;padding:40px}
+.form-box{width:100%;max-width:380px}
+.fg{margin-bottom:18px}
+label{display:block;font-size:0.82rem;font-weight:700;color:#374151;margin-bottom:6px}
+input{width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:0.9rem;font-family:inherit}
+input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#1a4db5,#2563eb);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;transition:all 0.2s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(37,99,235,0.4)}
+.alert{padding:12px 16px;border-radius:8px;font-size:0.85rem;margin-bottom:16px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.alert-info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+.alert-warning{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.demo{margin-top:20px;padding:12px;background:#eff6ff;border-radius:8px;font-size:0.8rem;color:#1d4ed8}
+code{background:#dbeafe;padding:1px 4px;border-radius:4px}
+@media(max-width:768px){.left-panel{display:none}.right-panel{width:100%}}
+</style></head>
+<body>
+<div class="left-panel">
+  <div style="text-align:center;color:white;position:relative;z-index:2">
+    <div class="crest">KU</div>
+    <div style="font-size:1.8rem;font-weight:800">JNTU & Private Universities</div>
+    <div style="opacity:0.7;margin-top:6px;font-size:0.9rem">Smart Tatkal Certificate Management System</div>
+  </div>
+  <div class="features">
+    <div class="feature"><div class="fi">⚡</div><span>Tatkal service — certificates in 24 hours</span></div>
+    <div class="feature"><div class="fi">📄</div><span>10+ certificate types with digital signature</span></div>
+    <div class="feature"><div class="fi">🔒</div><span>QR code verified & tamper-proof documents</span></div>
+    <div class="feature"><div class="fi">💳</div><span>Online payment with instant receipt</span></div>
+    <div class="feature"><div class="fi">🤖</div><span>AI-powered student support chatbot</span></div>
+  </div>
+</div>
+<div class="right-panel">
+  <div class="form-box">
+    <h1 style="font-size:1.8rem;font-weight:800;color:#0d1b3e;margin-bottom:4px">Welcome Back</h1>
+    <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:32px">Sign in to access your certificate portal</p>
+    {% if messages %}{% for m in messages %}<div class="alert{% if m.tags == 'info' %} alert-info{% elif m.tags == 'warning' %} alert-warning{% endif %}">{{ m }}</div>{% endfor %}{% endif %}
+    {% if otp_step == 'choose_method' %}
+    <div style="margin-bottom:18px;padding:14px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:0.92rem;line-height:1.5;">
+      Choose where to send your OTP for <strong>{{ masked_email }}</strong>.
+    </div>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="send_otp">
+      {% if has_phone %}
+      <button type="submit" name="method" value="phone" class="btn" style="margin-bottom:12px;">Send OTP to phone {{ masked_phone }}</button>
+      {% endif %}
+      <button type="submit" name="method" value="email" class="btn">Send OTP to email {{ masked_email }}</button>
+    </form>
+    <p style="text-align:center;font-size:0.88rem;color:#64748b;margin-top:20px">
+      If you do not want to use the phone option, select email.
+    </p>
+    {% elif otp_step == 'verify' %}
+    <div style="margin-bottom:18px;padding:14px;border-radius:12px;background:#fef3c7;color:#92400e;font-size:0.92rem;line-height:1.5;">
+      Enter the 6-digit OTP sent to {% if selected_method == 'phone' %}your phone number {{ masked_phone }}{% else %}your email {{ masked_email }}{% endif %}.
+    </div>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="verify_otp">
+      <div class="fg"><label>ONE-TIME PASSWORD</label><input name="otp" placeholder="Enter the OTP" required autofocus></div>
+      <button type="submit" class="btn">Verify OTP</button>
+    </form>
+    <form method="post" style="margin-top:12px; text-align:center;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="resend_otp">
+      <button type="submit" class="btn" style="background:#64748b;" {% if resend_available_in and resend_available_in > 0 %}disabled{% endif %}>
+        {% if resend_available_in and resend_available_in > 0 %}Resend OTP ({{ resend_available_in }}s){% else %}Resend OTP{% endif %}
+      </button>
+    </form>
+    {% else %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="email">
+      <div class="fg"><label>EMAIL</label><input name="email" type="email" placeholder="Enter your email" required autofocus></div>
+      <button type="submit" class="btn">Continue</button>
+    </form>
+    <p style="text-align:center;font-size:0.88rem;color:#64748b;margin-top:20px">
+      New student? <a href="/register/" style="color:#2563eb;font-weight:600">Create account</a>
+    </p>
+    {% endif %}
+    <div class="demo">
+      <strong>Demo Accounts:</strong><br>
+      Student: <code>student1</code> / <code>pass123</code><br>
+      Staff: <code>staff1</code> / <code>pass123</code><br>
+      Admin: <code>admin1</code> / <code>pass123</code>
+    </div>
+  </div>
+</div>
+</body></html>

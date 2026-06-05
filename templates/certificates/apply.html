@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load cert_tags %}
+{% block title %}Apply Certificate{% endblock %}
+{% block s_apply %}active{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">⚡ Apply for Certificate</div>
+  <div class="page-subtitle">Choose your certificate type and service level</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 360px;gap:24px">
+<div>
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Select Certificate Type</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="certGrid">
+      {% for code, name in cert_types %}
+      <label style="cursor:pointer">
+        <input type="radio" name="cert_type_radio" value="{{ code }}" style="display:none" onchange="selectCert('{{ code }}', '{{ name }}')">
+        <div class="cert-card" id="cert-{{ code }}" style="padding:14px;border:2px solid #e2e8f0;border-radius:10px;transition:all 0.2s;hover:border-blue">
+          <div style="font-weight:700;font-size:0.9rem">{{ name }}</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:2px">Normal: ₹{{ fees|get_item:code }} · Tatkal: ₹{{ fees|get_item:code|multiply:3 }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Service Type</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <label style="cursor:pointer">
+        <input type="radio" name="service_radio" value="normal" checked style="display:none" onchange="setService(false)">
+        <div id="service-normal" style="padding:16px;border:2px solid #2563eb;border-radius:10px;background:#eff6ff">
+          <div style="font-size:1.2rem">📄</div>
+          <div style="font-weight:700;margin-top:4px">Normal Service</div>
+          <div style="font-size:0.8rem;color:#64748b;margin-top:2px">5–7 working days</div>
+          <div style="font-weight:700;color:#2563eb;margin-top:6px" id="normal-fee">₹—</div>
+        </div>
+      </label>
+      <label style="cursor:pointer">
+        <input type="radio" name="service_radio" value="tatkal" style="display:none" onchange="setService(true)">
+        <div id="service-tatkal" style="padding:16px;border:2px solid #e2e8f0;border-radius:10px">
+          <div style="font-size:1.2rem">⚡</div>
+          <div style="font-weight:700;margin-top:4px">Tatkal Service</div>
+          <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Within 24–48 hours</div>
+          <div style="font-weight:700;color:#dc2626;margin-top:6px" id="tatkal-fee">₹—</div>
+        </div>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><div class="card-title">Application Details</div></div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data" id="appForm">{% csrf_token %}
+      <input type="hidden" name="certificate_type" id="cert_type_hidden">
+      <input type="hidden" name="is_tatkal" id="is_tatkal_hidden" value="false">
+      <div class="form-group">
+        <label class="form-label">University / College</label>
+        <input type="text" id="college-search" name="college_search" class="form-control" placeholder="Search college by name, code, university, state, or district" autocomplete="off" required>
+        <input type="hidden" name="college" id="college-hidden" value="">
+        <input type="hidden" name="institution" id="institution-hidden" value="">
+        <div id="college-suggestions" style="position:relative"></div>
+        <div class="form-hint">Start typing and select the correct college or institution from the list.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PURPOSE OF CERTIFICATE</label>
+        <textarea name="purpose" class="form-control" rows="3" placeholder="Explain why you need this certificate..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SUPPORTING DOCUMENT 1</label>
+        <input type="file" name="document1" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        <div class="form-hint">College ID / Aadhar / Fee receipt</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">SUPPORTING DOCUMENT 2 (Optional)</label>
+        <input type="file" name="document2" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+      </div>
+      <button type="submit" class="btn btn-gold btn-lg" onclick="return validateForm()" id="submitBtn" disabled style="width:100%">
+        Select Certificate Type First
+      </button>
+    </form>
+  </div>
+</div>
+</div>
+
+<div>
+<div class="card" style="position:sticky;top:80px">
+  <div class="card-header" style="background:#0d1b3e;color:white;border-radius:12px 12px 0 0">
+    <div style="font-weight:700">Application Summary</div>
+  </div>
+  <div class="card-body">
+    <div id="summary-empty" style="text-align:center;padding:20px;color:#94a3b8">
+      <div style="font-size:2rem">📋</div>
+      <div style="font-size:0.85rem;margin-top:8px">Select a certificate type to see details</div>
+    </div>
+    <div id="summary-content" style="display:none">
+      <div style="margin-bottom:12px">
+        <div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Certificate</div>
+        <div style="font-weight:700;margin-top:2px" id="sum-cert">—</div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:0.75rem;color:#94a3b8;font-weight:700;text-transform:uppercase">Service</div>
+        <div style="font-weight:700;margin-top:2px" id="sum-service">Normal</div>
+      </div>
+      <div style="border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">Total Fee</div>
+          <div style="font-size:1.5rem;font-weight:800;color:#0d1b3e" id="sum-fee">₹0</div>
+        </div>
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">Payment due at next step</div>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;font-size:0.8rem;color:#92400e" id="tatkal-info" style="display:none">
+        ⚡ Tatkal applications are processed within 24-48 hours with priority handling.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><div class="card-title" style="font-size:0.9rem">Fee Schedule</div></div>
+  <div class="card-body" style="padding:0">
+    <table style="width:100%;font-size:0.8rem">
+      <thead><tr><th style="padding:8px 12px;text-align:left;background:#f8fafc;color:#64748b">Certificate</th><th style="padding:8px 12px;text-align:right;background:#f8fafc;color:#64748b">Normal</th><th style="padding:8px 12px;text-align:right;background:#f8fafc;color:#dc2626">Tatkal</th></tr></thead>
+      <tbody>
+      {% for code, name in cert_types %}
+      <tr><td style="padding:7px 12px;border-bottom:1px solid #f1f5f9">{{ name|truncatechars:22 }}</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f1f5f9">₹{{ fees|get_item:code }}</td><td style="padding:7px 12px;text-align:right;border-bottom:1px solid #f1f5f9;color:#dc2626;font-weight:600">₹{{ fees|get_item:code|multiply:3 }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+</div>
+
+<script>
+const fees = {{ fees|safe }};
+const tatkalMult = {{ tatkal_multiplier }};
+let selectedCert = null;
+let isTatkal = false;
+let certName = '';
+
+function selectCert(code, name) {
+  if(selectedCert) {
+    document.getElementById('cert-'+selectedCert).style.border = '2px solid #e2e8f0';
+    document.getElementById('cert-'+selectedCert).style.background = '';
+  }
+  selectedCert = code; certName = name;
+  document.getElementById('cert-'+code).style.border = '2px solid #2563eb';
+  document.getElementById('cert-'+code).style.background = '#eff6ff';
+  document.getElementById('cert_type_hidden').value = code;
+  updateSummary();
+}
+
+function setService(tatkal) {
+  isTatkal = tatkal;
+  document.getElementById('is_tatkal_hidden').value = tatkal;
+  document.getElementById('service-normal').style.border = tatkal ? '2px solid #e2e8f0' : '2px solid #2563eb';
+  document.getElementById('service-normal').style.background = tatkal ? '' : '#eff6ff';
+  document.getElementById('service-tatkal').style.border = tatkal ? '2px solid #dc2626' : '2px solid #e2e8f0';
+  document.getElementById('service-tatkal').style.background = tatkal ? '#fff8f8' : '';
+  updateSummary();
+}
+
+function updateSummary() {
+  if(!selectedCert) return;
+  const baseFee = fees[selectedCert] || 0;
+  const fee = isTatkal ? baseFee * tatkalMult : baseFee;
+  const normalFee = baseFee;
+  const tatkalFee = baseFee * tatkalMult;
+  document.getElementById('normal-fee').textContent = '₹' + normalFee;
+  document.getElementById('tatkal-fee').textContent = '₹' + tatkalFee;
+  document.getElementById('sum-cert').textContent = certName;
+  document.getElementById('sum-service').textContent = isTatkal ? '⚡ Tatkal (24-48hrs)' : '📄 Normal (5-7 days)';
+  document.getElementById('sum-fee').textContent = '₹' + fee;
+  document.getElementById('summary-empty').style.display = 'none';
+  document.getElementById('summary-content').style.display = 'block';
+  document.getElementById('tatkal-info').style.display = isTatkal ? 'block' : 'none';
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  btn.textContent = isTatkal ? '⚡ Submit Tatkal Application' : '📋 Submit Application';
+}
+
+function validateForm() {
+  if(!selectedCert) { alert('Please select a certificate type.'); return false; }
+  const collegeId = document.getElementById('college-hidden').value;
+  const institutionId = document.getElementById('institution-hidden').value;
+  if(!collegeId && !institutionId) { alert('Please select a valid college or institution from the suggestions.'); return false; }
+  return true;
+}
+
+let currentCollegeQuery = '';
+let currentCollegePage = 1;
+
+async function searchColleges(query, page = 1, pageSize = null) {
+  const suggestions = document.getElementById('college-suggestions');
+  suggestions.innerHTML = '';
+  // allow empty query (triggered on focus) so server can return default suggestions
+  // do not block when query is empty
+
+  let url = '{% url "college_search_api" %}?q=' + encodeURIComponent(query) + '&page=' + page;
+  if (pageSize) {
+    url += '&page_size=' + pageSize;
+  }
+  const response = await fetch(url);
+  if(!response.ok) {
+    suggestions.innerHTML = '<div class="suggestion-item" style="padding:10px;color:#64748b">Search unavailable.</div>';
+    return;
+  }
+
+  const data = await response.json();
+  if(!data.results || data.results.length === 0) {
+    suggestions.innerHTML = '<div class="suggestion-item" style="padding:10px;color:#64748b">No colleges found.</div>';
+    return;
+  }
+
+  currentCollegeQuery = query;
+  currentCollegePage = data.page || page;
+
+  const list = document.createElement('div');
+  list.style.position = 'absolute';
+  list.style.zIndex = '50';
+  list.style.background = 'white';
+  list.style.border = '1px solid #cbd5e1';
+  list.style.borderRadius = '8px';
+  list.style.boxShadow = '0 6px 18px rgba(15, 23, 42, 0.08)';
+  list.style.width = '100%';
+  list.style.maxHeight = '320px';
+  list.style.overflowY = 'auto';
+
+  data.results.forEach(college => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.style.padding = '10px';
+    item.style.cursor = 'pointer';
+    item.style.borderBottom = '1px solid #e2e8f0';
+    const kindLabel = college.type === 'institution' ? 'Institution' : 'College';
+    const extraInfo = [college.university_name, college.state, college.district].filter(Boolean).join(' · ');
+    item.innerHTML = `<strong>${college.college_name}</strong> (${college.college_code})<br><small>${kindLabel}${extraInfo ? ' · ' + extraInfo : ''}</small>`;
+    item.addEventListener('click', () => {
+      document.getElementById('college-search').value = `${college.college_name} (${college.college_code})`;
+      if (college.type === 'institution') {
+        document.getElementById('institution-hidden').value = college.id;
+        document.getElementById('college-hidden').value = '';
+      } else {
+        document.getElementById('college-hidden').value = college.id;
+        document.getElementById('institution-hidden').value = '';
+      }
+      suggestions.innerHTML = '';
+    });
+    list.appendChild(item);
+  });
+
+  const pager = document.createElement('div');
+  pager.style.display = 'flex';
+  pager.style.justifyContent = 'space-between';
+  pager.style.padding = '10px';
+  pager.style.background = '#f8fafc';
+  pager.style.borderTop = '1px solid #cbd5e1';
+
+  const prevButton = document.createElement('button');
+  prevButton.type = 'button';
+  prevButton.textContent = 'Previous';
+  prevButton.disabled = data.page <= 1;
+  prevButton.style.padding = '8px 12px';
+  prevButton.style.border = '1px solid #cbd5e1';
+  prevButton.style.borderRadius = '6px';
+  prevButton.style.background = prevButton.disabled ? '#e2e8f0' : 'white';
+  prevButton.style.cursor = prevButton.disabled ? 'not-allowed' : 'pointer';
+  prevButton.addEventListener('click', () => {
+    if(data.page > 1) {
+      searchColleges(currentCollegeQuery, data.page - 1);
+    }
+  });
+
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.textContent = 'Next';
+  nextButton.disabled = !data.has_next;
+  nextButton.style.padding = '8px 12px';
+  nextButton.style.border = '1px solid #cbd5e1';
+  nextButton.style.borderRadius = '6px';
+  nextButton.style.background = nextButton.disabled ? '#e2e8f0' : 'white';
+  nextButton.style.cursor = nextButton.disabled ? 'not-allowed' : 'pointer';
+  nextButton.addEventListener('click', () => {
+    if(data.has_next) {
+      searchColleges(currentCollegeQuery, data.page + 1);
+    }
+  });
+
+  const pageInfo = document.createElement('div');
+  pageInfo.style.alignSelf = 'center';
+  pageInfo.style.fontSize = '0.85rem';
+  pageInfo.style.color = '#475569';
+  pageInfo.textContent = `Page ${data.page}`;
+
+  pager.appendChild(prevButton);
+  pager.appendChild(pageInfo);
+  pager.appendChild(nextButton);
+  list.appendChild(pager);
+
+  suggestions.appendChild(list);
+}
+
+const collegeSearchInput = document.getElementById('college-search');
+collegeSearchInput.addEventListener('input', (event) => {
+  document.getElementById('college-hidden').value = '';
+  document.getElementById('institution-hidden').value = '';
+  currentCollegePage = 1;
+  searchColleges(event.target.value, 1);
+});
+
+collegeSearchInput.addEventListener('focus', () => {
+  currentCollegePage = 1;
+  searchColleges('', 1, 1000);
+});
+
+window.addEventListener('click', (event) => {
+  const suggestions = document.getElementById('college-suggestions');
+  if(!event.target.closest('#college-suggestions') && event.target.id !== 'college-search') {
+    suggestions.innerHTML = '';
+  }
+});
+</script>
+{% endblock %}

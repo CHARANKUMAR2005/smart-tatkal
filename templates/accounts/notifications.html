@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Notifications</div>
+  <div class="page-subtitle">{{ notifications.count }} total notifications</div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    {% for n in notifications %}
+    <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;gap:12px;{% if not n.is_read %}background:#fffbeb{% endif %}">
+      <div style="font-size:1.3rem;flex-shrink:0">
+        {% if n.type == 'success' %}✅{% elif n.type == 'warning' %}⚠️{% elif n.type == 'error' %}❌{% else %}ℹ️{% endif %}
+      </div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.9rem">{{ n.title }}</div>
+        <div style="font-size:0.85rem;color:#475569;margin-top:2px">{{ n.message }}</div>
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px">{{ n.created_at|date:"d M Y H:i" }}</div>
+      </div>
+      {% if n.link %}
+      <a href="{{ n.link }}" class="btn btn-outline btn-sm" style="flex-shrink:0">View</a>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div style="padding:60px;text-align:center;color:#94a3b8">
+      <div style="font-size:3rem;margin-bottom:12px">🔔</div>
+      <div style="font-weight:600">No notifications</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

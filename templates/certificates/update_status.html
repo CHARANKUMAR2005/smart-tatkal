@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Update Application Status{% endblock %}
+{% block content %}
+<div class="page-header">
+  <a href="/applications/{{ application.application_id }}/" class="btn btn-outline btn-sm" style="margin-bottom:12px">← Back to Application</a>
+  <div class="page-title">Update Application Status</div>
+  <div class="page-subtitle">Application #{{ application.get_short_id }} — {{ application.get_certificate_type_display }}</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div>
+<div class="card">
+  <div class="card-header"><div class="card-title">Application Details</div></div>
+  <div class="card-body">
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:0.88rem">
+      <div style="display:flex;gap:8px;align-items:center"><strong>Student:</strong> {{ application.student.user.get_full_name }} ({{ application.student.student_id }})</div>
+      <div style="display:flex;gap:8px;align-items:center"><strong>Certificate:</strong> {{ application.get_certificate_type_display }}</div>
+      <div style="display:flex;gap:8px;align-items:center"><strong>Service:</strong> {% if application.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</div>
+      <div style="display:flex;gap:8px;align-items:center"><strong>Current Status:</strong> <span class="badge badge-{{ application.status }}">{{ application.get_status_display }}</span></div>
+      <div style="display:flex;gap:8px;align-items:center"><strong>Payment:</strong> <span class="badge badge-{{ application.payment_status }}">{{ application.payment_status|title }}</span></div>
+      <div><strong>Fee:</strong> ₹{{ application.fee_amount }}</div>
+      {% if application.purpose %}
+      <div style="background:#f8fafc;border-radius:8px;padding:10px"><strong>Purpose:</strong><br>{{ application.purpose }}</div>
+      {% endif %}
+    </div>
+    <!-- Documents -->
+    {% if application.document1 or application.document2 or application.document3 %}
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9">
+      <div style="font-weight:700;font-size:0.85rem;margin-bottom:8px">Uploaded Documents</div>
+      {% if application.document1 %}<a href="{{ application.document1.url }}" class="btn btn-outline btn-sm" target="_blank">📄 Document 1</a> {% endif %}
+      {% if application.document2 %}<a href="{{ application.document2.url }}" class="btn btn-outline btn-sm" target="_blank">📄 Document 2</a> {% endif %}
+      {% if application.document3 %}<a href="{{ application.document3.url }}" class="btn btn-outline btn-sm" target="_blank">📄 Document 3</a> {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+</div>
+
+<div>
+<div class="card">
+  <div class="card-header" style="background:#0d1b3e;color:white;border-radius:12px 12px 0 0"><div style="font-weight:700">Update Status</div></div>
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">NEW STATUS</label>
+        <select name="status" class="form-control form-select" required>
+          <option value="">Select status...</option>
+          <option value="under_verification" {% if application.status == 'under_verification' %}selected{% endif %}>🔍 Under Verification</option>
+          <option value="document_issue" {% if application.status == 'document_issue' %}selected{% endif %}>⚠️ Document Issue</option>
+          <option value="approved">✅ Approve & Generate Certificate</option>
+          <option value="rejected">❌ Reject</option>
+          <option value="delivered" {% if application.status == 'generated' %}selected{% endif %}>📬 Mark as Delivered</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">STAFF REMARKS (visible to student)</label>
+        <textarea name="staff_remarks" class="form-control" rows="3" placeholder="Add remarks for student...">{{ application.staff_remarks }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">INTERNAL NOTE</label>
+        <textarea name="note" class="form-control" rows="2" placeholder="Internal processing note..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary">Update Status</button>
+        <a href="/applications/{{ application.application_id }}/" class="btn btn-outline">Cancel</a>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:0.8rem;color:#065f46">
+        ✅ Selecting <strong>"Approve"</strong> will automatically generate and attach the digital certificate PDF with QR code.
+      </div>
+      <div style="margin-top:10px;padding:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:0.8rem;color:#1e40af">
+        📧 The student at <strong>{{ application.student.user.email }}</strong> will receive an email notification when you approve or reject.
+        <a href="/admin/test-email/" target="_blank" style="color:#1d4ed8;font-weight:600;margin-left:6px">Test email settings →</a>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

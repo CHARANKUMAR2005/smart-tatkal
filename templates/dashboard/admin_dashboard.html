@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Admin Control Center</div>
+  <div class="page-subtitle">System overview and management</div>
+</div>
+
+<div class="stats-grid stagger">
+  <div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📋</div><div><div class="stat-label">Total Applications</div><div class="stat-value">{{ total_applications }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#fef3c7">⏳</div><div><div class="stat-label">Pending</div><div class="stat-value">{{ pending_applications }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5">✅</div><div><div class="stat-label">Approved</div><div class="stat-value">{{ approved_applications }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#ede9fe">👥</div><div><div class="stat-label">Students</div><div class="stat-value">{{ total_students }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#fce7f3">👔</div><div><div class="stat-label">Staff</div><div class="stat-value">{{ total_staff }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#d1fae5">💰</div><div><div class="stat-label">Total Revenue</div><div class="stat-value" style="font-size:1.3rem">₹{{ total_revenue|floatformat:0 }}</div><div class="stat-sub">Tatkal: ₹{{ tatkal_revenue|floatformat:0 }}</div></div></div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Recent Applications</div>
+    <div style="display:flex;gap:8px">
+      <a href="/admin/users/" class="btn btn-outline btn-sm">👥 Users</a>
+      <a href="/staff/applications/" class="btn btn-primary btn-sm">📋 All Apps</a>
+    </div>
+  </div>
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>App ID</th><th>Student</th><th>Certificate</th><th>Service</th><th>Status</th><th>Revenue</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for app in recent_apps %}
+      <tr>
+        <td><code style="font-family:monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</code></td>
+        <td><div style="font-weight:600">{{ app.student.user.get_full_name }}</div><div style="font-size:0.75rem;color:#64748b">{{ app.student.department }}</div></td>
+        <td>{{ app.get_certificate_type_display }}</td>
+        <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>
+        <td><span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span></td>
+        <td style="font-weight:600">₹{{ app.fee_amount }}</td>
+        <td style="font-size:0.82rem;color:#64748b">{{ app.created_at|date:"d M Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;padding:30px;color:#94a3b8">No applications yet</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

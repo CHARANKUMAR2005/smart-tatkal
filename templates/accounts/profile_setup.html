@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Setup Profile{% endblock %}
+{% block auth_content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#f8fafc">
+<div style="max-width:620px;width:100%;background:white;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,0.08);overflow:hidden">
+  <div style="background:linear-gradient(135deg,#0d1b3e,#1a4db5);padding:28px 32px;color:white">
+    <h1 style="font-size:1.5rem;font-weight:800;margin:0">Complete Your Profile</h1>
+    <p style="opacity:0.8;margin-top:4px;font-size:0.9rem">Add your student details to continue</p>
+  </div>
+  <div style="padding:32px">
+
+    {% if messages %}
+    <div style="margin-bottom:20px">
+      {% for message in messages %}
+      <div style="padding:12px 16px;border-radius:8px;margin-bottom:8px;font-size:0.9rem;
+        {% if message.tags == 'error' %}background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444;
+        {% elif message.tags == 'success' %}background:#d1fae5;color:#065f46;border-left:4px solid #10b981;
+        {% else %}background:#fef9c3;color:#854d0e;border-left:4px solid #eab308;{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if form.errors %}
+    <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;background:#fee2e2;color:#991b1b;border-left:4px solid #ef4444;font-size:0.9rem">
+      <strong>Please fix the following errors:</strong>
+      <ul style="margin:8px 0 0 16px;padding:0">
+        {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">{% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <div style="grid-column:1/-1">
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Department *</label>
+          {{ form.department }}
+          {% if form.department.errors %}<p style="color:#ef4444;font-size:0.8rem;margin:4px 0 0">{{ form.department.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Year *</label>
+          {{ form.year }}
+          {% if form.year.errors %}<p style="color:#ef4444;font-size:0.8rem;margin:4px 0 0">{{ form.year.errors|join:", " }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Admission Year</label>
+          {{ form.admission_year }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Roll Number</label>
+          {{ form.roll_number }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Course</label>
+          {{ form.course }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Date of Birth</label>
+          {{ form.date_of_birth }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Aadhar Number</label>
+          {{ form.aadhar_number }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Father's Name</label>
+          {{ form.father_name }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Mother's Name</label>
+          {{ form.mother_name }}
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Address</label>
+          {{ form.address }}
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">Profile Photo</label>
+          {{ form.profile_photo }}
+          <p style="color:#6b7280;font-size:0.75rem;margin:4px 0 0">JPEG or PNG, clear photo</p>
+        </div>
+
+        <div>
+          <label style="font-size:0.85rem;font-weight:600;color:#374151">ID Card / Document</label>
+          {{ form.id_card }}
+          <p style="color:#6b7280;font-size:0.75rem;margin:4px 0 0">PDF, JPG, or PNG</p>
+        </div>
+
+      </div>
+
+      <button type="submit" style="width:100%;padding:13px;background:linear-gradient(135deg,#1a4db5,#2563eb);color:white;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:20px">
+        Save Profile &amp; Continue →
+      </button>
+    </form>
+  </div>
+</div>
+</div>
+
+<style>
+  select, input[type=text], input[type=number], input[type=date], textarea {
+    width:100%; padding:9px 12px; border:1px solid #d1d5db; border-radius:8px;
+    font-size:0.9rem; margin-top:4px; box-sizing:border-box; font-family:inherit;
+    background:#fff;
+  }
+  select:focus, input:focus, textarea:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.15); }
+  input[type=file] { width:100%; margin-top:4px; font-size:0.85rem; }
+  textarea { resize:vertical; }
+</style>
+{% endblock %}
