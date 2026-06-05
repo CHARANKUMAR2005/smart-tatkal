@@ -104,8 +104,16 @@ SIMPLE_JWT = {
 }
 
 # ─── App base URL ─────────────────────────────────────────────────────────────
-# Used in email links and PDF QR codes. Set BASE_URL in .env for production.
+# Used in email links and PDF QR codes. Set BASE_URL in .env / Render dashboard.
 BASE_URL = os.environ.get('BASE_URL', 'http://localhost:8000').rstrip('/')
+
+# ─── CSRF trusted origins ─────────────────────────────────────────────────────
+# Required for POST requests on any non-localhost domain (e.g. Render, custom domain).
+CSRF_TRUSTED_ORIGINS = [BASE_URL] if BASE_URL != 'http://localhost:8000' else []
+
+# ─── HTTPS proxy header (Render / most cloud platforms terminate SSL) ─────────
+# Lets Django know the original request was HTTPS even though gunicorn sees HTTP.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ─── University branding ──────────────────────────────────────────────────────
 UNIVERSITY_NAME    = os.environ.get('UNIVERSITY_NAME', 'Kakatiya University')
