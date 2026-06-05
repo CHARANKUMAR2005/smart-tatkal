@@ -133,13 +133,20 @@ UNIVERSITY_LOGO    = os.environ.get('UNIVERSITY_LOGO', 'images/logo.png')
 SUPPORT_EMAIL      = os.environ.get('SUPPORT_EMAIL', '')
 
 # ─── Email ────────────────────────────────────────────────────────────────────
-# Priority: SendGrid API (works on Render free tier) → Gmail SMTP → console
+# Priority: Brevo API → SendGrid API → Gmail SMTP → console
 _sendgrid_key   = os.environ.get('SENDGRID_API_KEY', '')
 _gmail_user     = os.environ.get('GMAIL_HOST_USER', '')
 _gmail_password = os.environ.get('GMAIL_APP_PASSWORD', '')
 
-if _sendgrid_key:
-    # SendGrid via HTTPS — no SMTP port needed, works on all hosting platforms.
+_brevo_key      = os.environ.get('BREVO_API_KEY', '')
+
+if _brevo_key:
+    # Brevo via HTTPS API — no SMTP port needed, works on Render free tier.
+    EMAIL_BACKEND  = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL        = {'BREVO_API_KEY': _brevo_key}
+    EMAIL_HOST_USER    = _gmail_user or 'noreply@tatkal.local'
+    DEFAULT_FROM_EMAIL = f'Tatkal CMS <{EMAIL_HOST_USER}>'
+elif _sendgrid_key:
     EMAIL_BACKEND  = 'anymail.backends.sendgrid.EmailBackend'
     ANYMAIL        = {'SENDGRID_API_KEY': _sendgrid_key}
     EMAIL_HOST_USER    = _gmail_user or 'noreply@tatkal.local'

@@ -8,4 +8,4 @@ qrcode==7.4.2
 Pillow>=11.2.1
 python-dotenv==1.0.0
 gunicorn==23.0.0
-django-anymail[sendgrid]==10.3
+django-anymail[brevo]==10.3
