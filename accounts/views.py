@@ -9,6 +9,7 @@ from django.core.mail import send_mail
 from django.http import JsonResponse
 from datetime import timedelta
 import random
+import threading
 
 from .models import User, StudentProfile, StaffProfile, AuditLog, OTPVerification, College, Institution
 from .forms import StudentRegistrationForm, StudentProfileForm, CustomLoginForm
@@ -230,9 +231,17 @@ def send_email_otp(email, otp, purpose='login'):
         from django.core.mail import EmailMultiAlternatives
         msg = EmailMultiAlternatives(subject, plain_message, from_email, [email])
         msg.attach_alternative(html_message, 'text/html')
-        msg.send(fail_silently=False)
+
+        def _send():
+            try:
+                msg.send(fail_silently=False)
+                print(f'[Email OTP] ✅ Sent to {email}')
+            except Exception as _exc:
+                print(f'[Email OTP] ❌ Failed to {email}: {_exc}')
+
+        threading.Thread(target=_send, daemon=True).start()
         if settings.DEBUG:
-            print(f'[Email OTP] To: {email} | OTP: {otp}')
+            print(f'[Email OTP] Queued → {email} | OTP: {otp}')
         return True
     except Exception as exc:
         if settings.DEBUG:
@@ -292,9 +301,15 @@ def send_approval_email(student_email, student_name, cert_type, app_id, short_id
         from django.core.mail import EmailMultiAlternatives
         msg = EmailMultiAlternatives(subject, plain_message, from_email, [student_email])
         msg.attach_alternative(html_message, 'text/html')
-        msg.send(fail_silently=False)
-        if settings.DEBUG:
-            print(f'[Approval Email] Sent {status} email to {student_email}')
+
+        def _send():
+            try:
+                msg.send(fail_silently=False)
+                print(f'[Approval Email] ✅ Sent {status} email to {student_email}')
+            except Exception as _exc:
+                print(f'[Approval Email] ❌ Failed to {student_email}: {_exc}')
+
+        threading.Thread(target=_send, daemon=True).start()
         return True
     except Exception as exc:
         if settings.DEBUG:

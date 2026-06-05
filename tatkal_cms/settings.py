@@ -150,6 +150,9 @@ else:
     EMAIL_HOST_USER    = 'noreply@tatkal.local'
     DEFAULT_FROM_EMAIL = 'Tatkal CMS <noreply@tatkal.local>'
 
+# Fail the SMTP connection attempt after 10 s instead of hanging the worker.
+EMAIL_TIMEOUT = 10
+
 # Fill SUPPORT_EMAIL from the sender address if not set explicitly
 if not SUPPORT_EMAIL:
     SUPPORT_EMAIL = _gmail_user or 'noreply@tatkal.local'

@@ -7,6 +7,7 @@ Uses the same EmailMultiAlternatives path as the working OTP emails.
 import re
 import traceback
 import logging
+import threading
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -170,7 +171,7 @@ def send_status_email(application, new_status, note='', staff_remarks=''):
     plain = re.sub(r'<[^>]+>', ' ', html)
     plain = re.sub(r'\s+', ' ', plain).strip()
 
-    print(f"[Email] Sending '{new_status}' notification → {student_email}")
+    print(f"[Email] Queuing '{new_status}' notification → {student_email}")
 
     try:
         msg = EmailMultiAlternatives(
@@ -180,11 +181,19 @@ def send_status_email(application, new_status, note='', staff_remarks=''):
             to         = [student_email],
         )
         msg.attach_alternative(html, 'text/html')
-        msg.send(fail_silently=False)
-        print(f"[Email] ✅ Sent '{new_status}' email to {student_email} for #{short_id}")
+
+        def _send():
+            try:
+                msg.send(fail_silently=False)
+                print(f"[Email] ✅ Sent '{new_status}' email to {student_email} for #{short_id}")
+            except Exception:
+                print(f"[Email] ❌ Failed to send email to {student_email}:")
+                print(traceback.format_exc())
+
+        threading.Thread(target=_send, daemon=True).start()
 
     except Exception:
-        print(f"[Email] ❌ Failed to send email to {student_email}:")
+        print(f"[Email] ❌ Failed to queue email to {student_email}:")
         print(traceback.format_exc())
 
 
