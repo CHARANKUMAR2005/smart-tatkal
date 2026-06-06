@@ -204,38 +204,46 @@ def update_status_view(request, app_id):
 
 @login_required
 def download_certificate_view(request, cert_id):
+    from django.core.files.storage import default_storage
+
     cert = get_object_or_404(Certificate, certificate_id=cert_id)
     if request.user.role == 'student' and cert.application.student.user != request.user:
         raise Http404
 
-    path = os.path.join(settings.MEDIA_ROOT, str(cert.pdf_path)) if cert.pdf_path else None
+    # Check whether the stored file is still accessible (ephemeral Render storage
+    # loses local files on every redeploy; Cloudinary always returns True).
+    file_missing = True
+    if cert.pdf_path:
+        try:
+            file_missing = not default_storage.exists(cert.pdf_path.name)
+        except Exception:
+            file_missing = True
 
-    # Render's storage is ephemeral — regenerate if the file was lost on redeploy
-    if not path or not os.path.exists(path):
+    if file_missing:
         try:
             verify_url = f"{settings.BASE_URL}/verify/{cert.verification_code}/"
-            qr_filename = f"qr_{cert.verification_code}.png"
-            # Regenerate QR code first if also missing
-            if cert.qr_code:
-                qr_full = os.path.join(settings.MEDIA_ROOT, str(cert.qr_code))
-            else:
-                qr_full = ''
-            if not qr_full or not os.path.exists(qr_full):
-                cert.qr_code = generate_qr_code(verify_url, qr_filename)
-            # Regenerate the PDF
+            cert.qr_code = generate_qr_code(verify_url, f"qr_{cert.verification_code}.png")
             cert.pdf_path = generate_certificate_pdf(cert.application, cert)
             cert.save()
-            path = os.path.join(settings.MEDIA_ROOT, str(cert.pdf_path))
         except Exception as exc:
             messages.error(request, f'Could not generate certificate: {exc}')
             return redirect('application_detail', app_id=cert.application.application_id)
 
     cert.download_count += 1
     cert.save()
-    return FileResponse(
-        open(path, 'rb'), as_attachment=True,
-        filename=f"Certificate_{cert.verification_code}.pdf"
-    )
+
+    # Redirect to storage URL — works for both local /media/ and Cloudinary CDN.
+    try:
+        return redirect(cert.pdf_path.url)
+    except Exception:
+        # Fallback: stream directly (local dev without media serving configured)
+        try:
+            f = default_storage.open(cert.pdf_path.name)
+            return FileResponse(f, as_attachment=True,
+                                filename=f"Certificate_{cert.verification_code}.pdf")
+        except Exception as exc:
+            messages.error(request, f'Could not serve certificate: {exc}')
+            return redirect('application_detail', app_id=cert.application.application_id)
 
 def verify_certificate_view(request, code):
     try:
