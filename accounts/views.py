@@ -457,12 +457,17 @@ def login_view(request):
             user = otp_record.user or User.objects.filter(email__iexact=email).first()
             if user:
                 otp_record.invalidate()
+                is_first_login = user.last_login is None  # must check BEFORE login() updates it
                 user.backend = 'django.contrib.auth.backends.ModelBackend'
                 login(request, user)
                 log_action(user, 'LOGIN', 'OTP verified', request)
                 for key in ['otp_email', 'otp_user_id', 'otp_stage', 'otp_method', 'otp_token_id', 'otp_sent_at', 'otp_phone']:
                     request.session.pop(key, None)
-                messages.success(request, f'Welcome back, {user.first_name}!')
+                if is_first_login:
+                    request.session['is_first_time_user'] = True
+                    messages.success(request, f'Welcome, {user.first_name}! Your account is all set.')
+                else:
+                    messages.success(request, f'Welcome back, {user.first_name}!')
                 return redirect('dashboard')
 
             messages.error(request, 'Unable to verify login. Please try again.')
@@ -536,7 +541,8 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     user = request.user
-    context = {'user': user}
+    is_first_time = request.session.pop('is_first_time_user', False)
+    context = {'user': user, 'is_first_time': is_first_time}
     
     if user.role == 'student':
         try:
@@ -773,7 +779,12 @@ def college_search_api(request):
             page_size = 1000
 
     results = []
+    seen_results = set()
     for college in college_qs:
+        key = (college.college_name.strip().lower(), college.college_code.strip().lower())
+        if key in seen_results:
+            continue
+        seen_results.add(key)
         results.append({
             'id': str(college.pk),
             'type': 'college',
@@ -784,6 +795,10 @@ def college_search_api(request):
             'district': college.district,
         })
     for institution in institution_qs:
+        key = (institution.name.strip().lower(), institution.code.strip().lower())
+        if key in seen_results:
+            continue
+        seen_results.add(key)
         results.append({
             'id': str(institution.pk),
             'type': 'institution',

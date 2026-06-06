@@ -3,7 +3,7 @@
 {% block s_dash %}active{% endblock %}
 {% block content %}
 <div class="page-header">
-  <div class="page-title">Welcome back, {{ user.first_name }}! 👋</div>
+  <div class="page-title">{% if is_first_time %}Welcome, {{ user.first_name }}! 👋{% else %}Welcome back, {{ user.first_name }}! 👋{% endif %}</div>
   <div class="page-subtitle">{{ profile.get_department_display }} · Year {{ profile.year }} · ID: {{ profile.student_id }}</div>
   <div class="page-actions">
     <a href="/apply/" class="btn btn-gold">⚡ Apply Certificate</a>

@@ -207,17 +207,35 @@ def download_certificate_view(request, cert_id):
     cert = get_object_or_404(Certificate, certificate_id=cert_id)
     if request.user.role == 'student' and cert.application.student.user != request.user:
         raise Http404
-    
-    if cert.pdf_path:
-        path = os.path.join(settings.MEDIA_ROOT, str(cert.pdf_path))
-        if os.path.exists(path):
-            cert.download_count += 1
+
+    path = os.path.join(settings.MEDIA_ROOT, str(cert.pdf_path)) if cert.pdf_path else None
+
+    # Render's storage is ephemeral — regenerate if the file was lost on redeploy
+    if not path or not os.path.exists(path):
+        try:
+            verify_url = f"{settings.BASE_URL}/verify/{cert.verification_code}/"
+            qr_filename = f"qr_{cert.verification_code}.png"
+            # Regenerate QR code first if also missing
+            if cert.qr_code:
+                qr_full = os.path.join(settings.MEDIA_ROOT, str(cert.qr_code))
+            else:
+                qr_full = ''
+            if not qr_full or not os.path.exists(qr_full):
+                cert.qr_code = generate_qr_code(verify_url, qr_filename)
+            # Regenerate the PDF
+            cert.pdf_path = generate_certificate_pdf(cert.application, cert)
             cert.save()
-            return FileResponse(open(path, 'rb'), as_attachment=True, 
-                              filename=f"Certificate_{cert.verification_code}.pdf")
-    
-    messages.error(request, 'Certificate file not found.')
-    return redirect('application_detail', app_id=cert.application.application_id)
+            path = os.path.join(settings.MEDIA_ROOT, str(cert.pdf_path))
+        except Exception as exc:
+            messages.error(request, f'Could not generate certificate: {exc}')
+            return redirect('application_detail', app_id=cert.application.application_id)
+
+    cert.download_count += 1
+    cert.save()
+    return FileResponse(
+        open(path, 'rb'), as_attachment=True,
+        filename=f"Certificate_{cert.verification_code}.pdf"
+    )
 
 def verify_certificate_view(request, code):
     try:
@@ -259,7 +277,8 @@ def college_search_api(request):
     results = []
     seen_results = set()
     for college in college_qs:
-        key = ('college', college.college_code.strip().lower(), college.college_name.strip().lower(), college.university_name.strip().lower(), college.state.strip().lower(), college.district.strip().lower())
+        # Key on name+code only (no type prefix) so a college in both tables is deduplicated
+        key = (college.college_name.strip().lower(), college.college_code.strip().lower())
         if key in seen_results:
             continue
         seen_results.add(key)
@@ -273,7 +292,7 @@ def college_search_api(request):
             'district': college.district,
         })
     for institution in institution_qs:
-        key = ('institution', institution.code.strip().lower(), institution.name.strip().lower(), institution.state.strip().lower(), institution.city.strip().lower())
+        key = (institution.name.strip().lower(), institution.code.strip().lower())
         if key in seen_results:
             continue
         seen_results.add(key)
