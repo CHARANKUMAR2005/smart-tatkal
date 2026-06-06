@@ -45,9 +45,13 @@
   <div class="card-body">
     <div style="display:flex;flex-direction:column;gap:10px;font-size:0.85rem;color:#475569">
       <div style="display:flex;gap:8px">🔒 256-bit SSL encryption</div>
+      {% if not demo_mode %}
       <div style="display:flex;gap:8px">🏦 Secured by Razorpay</div>
       <div style="display:flex;gap:8px">📄 Instant receipt generation</div>
       <div style="display:flex;gap:8px">✅ PCI DSS compliant</div>
+      {% else %}
+      <div style="display:flex;gap:8px">⚠️ Demo mode — no real payment</div>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -56,44 +60,101 @@
 <div>
 <div class="card">
   <div class="card-header" style="background:#0d1b3e;color:white;border-radius:12px 12px 0 0">
-    <div style="font-weight:700">Choose Payment Method</div>
+    <div style="font-weight:700">{% if demo_mode %}Demo Payment{% else %}Pay with Razorpay{% endif %}</div>
   </div>
   <div class="card-body">
+
+    {% if demo_mode %}
+    <!-- Demo payment form (shown when RAZORPAY keys are not configured) -->
     <form method="post">{% csrf_token %}
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
-        {% for value, label in payment_methods %}{% endfor %}
         <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:2px solid #2563eb;border-radius:10px;background:#eff6ff">
-          <input type="radio" name="payment_method" value="upi" checked style="width:16px;height:16px">
-          <span style="font-size:1.2rem">📱</span>
-          <div><div style="font-weight:700">UPI Payment</div><div style="font-size:0.75rem;color:#64748b">Google Pay, PhonePe, Paytm</div></div>
-        </label>
-        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
-          <input type="radio" name="payment_method" value="debit_card" style="width:16px;height:16px">
-          <span style="font-size:1.2rem">💳</span>
-          <div><div style="font-weight:700">Debit Card</div><div style="font-size:0.75rem;color:#64748b">Visa, Mastercard, RuPay</div></div>
-        </label>
-        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
-          <input type="radio" name="payment_method" value="credit_card" style="width:16px;height:16px">
-          <span style="font-size:1.2rem">💰</span>
-          <div><div style="font-weight:700">Credit Card</div><div style="font-size:0.75rem;color:#64748b">All major cards accepted</div></div>
-        </label>
-        <label style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid #e2e8f0;border-radius:10px">
-          <input type="radio" name="payment_method" value="net_banking" style="width:16px;height:16px">
-          <span style="font-size:1.2rem">🏦</span>
-          <div><div style="font-weight:700">Net Banking</div><div style="font-size:0.75rem;color:#64748b">All major banks supported</div></div>
+          <input type="radio" name="payment_method" value="demo" checked style="width:16px;height:16px">
+          <span style="font-size:1.2rem">🎭</span>
+          <div><div style="font-weight:700">Demo Payment</div><div style="font-size:0.75rem;color:#64748b">No real money charged</div></div>
         </label>
       </div>
-      
       <button type="submit" class="btn btn-primary btn-lg" style="width:100%">
-        Pay ₹{{ application.fee_amount }} Securely →
+        Simulate Payment ₹{{ application.fee_amount }} →
       </button>
-      
       <div style="text-align:center;margin-top:10px;font-size:0.78rem;color:#94a3b8">
-        Demo mode — no real payment processed
+        Demo mode — add RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET in Render env to go live
       </div>
     </form>
+
+    {% else %}
+    <!-- Real Razorpay payment -->
+    <div style="text-align:center;padding:10px 0 24px">
+      <div style="font-size:2.5rem;margin-bottom:8px">🏦</div>
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px">Secure Payment via Razorpay</div>
+      <div style="font-size:0.85rem;color:#64748b">UPI · Debit/Credit Card · Net Banking · Wallets</div>
+    </div>
+
+    <!-- Hidden form — submitted by JS after Razorpay confirms payment -->
+    <form id="razorpay-form" method="post" action="{% url 'razorpay_callback' %}">
+      {% csrf_token %}
+      <input type="hidden" id="razorpay_payment_id" name="razorpay_payment_id">
+      <input type="hidden" id="razorpay_order_id"   name="razorpay_order_id"   value="{{ order_id }}">
+      <input type="hidden" id="razorpay_signature"   name="razorpay_signature">
+    </form>
+
+    <button id="pay-btn" onclick="openRazorpay()" class="btn btn-primary btn-lg" style="width:100%">
+      Pay ₹{{ application.fee_amount }} Securely →
+    </button>
+
+    <div style="text-align:center;margin-top:12px;font-size:0.78rem;color:#94a3b8">
+      You will be redirected back after payment is confirmed.
+    </div>
+    {% endif %}
+
   </div>
 </div>
 </div>
 </div>
+
+{% if not demo_mode %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function openRazorpay() {
+  var btn = document.getElementById('pay-btn');
+  btn.disabled = true;
+  btn.textContent = 'Opening payment…';
+
+  var options = {
+    key:         '{{ razorpay_key }}',
+    amount:      '{{ amount_paise }}',
+    currency:    'INR',
+    name:        '{{ application.student.college.college_name|default:"Tatkal CMS" }}',
+    description: '{{ application.get_certificate_type_display }} Certificate',
+    order_id:    '{{ order_id }}',
+    prefill: {
+      name:    '{{ student_name|escapejs }}',
+      email:   '{{ student_email|escapejs }}',
+      contact: '{{ student_phone|escapejs }}'
+    },
+    theme: { color: '#0d1b3e' },
+    handler: function(response) {
+      document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+      document.getElementById('razorpay_order_id').value   = response.razorpay_order_id;
+      document.getElementById('razorpay_signature').value  = response.razorpay_signature;
+      document.getElementById('razorpay-form').submit();
+    },
+    modal: {
+      ondismiss: function() {
+        btn.disabled = false;
+        btn.textContent = 'Pay ₹{{ application.fee_amount }} Securely →';
+      }
+    }
+  };
+
+  var rzp = new Razorpay(options);
+  rzp.on('payment.failed', function(resp) {
+    alert('Payment failed: ' + resp.error.description + '\nPlease try again.');
+    btn.disabled = false;
+    btn.textContent = 'Pay ₹{{ application.fee_amount }} Securely →';
+  });
+  rzp.open();
+}
+</script>
+{% endif %}
 {% endblock %}

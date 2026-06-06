@@ -11,3 +11,4 @@ gunicorn==23.0.0
 django-anymail[brevo]==10.3
 cloudinary==1.41.0
 django-cloudinary-storage==0.3.0
+razorpay==1.4.2
