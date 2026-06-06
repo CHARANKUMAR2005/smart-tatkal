@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block title %}Track Certificate{% endblock %}
+{% block extra_css %}
+<style>
+.track-wrap{max-width:700px;margin:0 auto}
+.step-track{display:flex;align-items:center;gap:4px;margin:20px 0;overflow-x:auto;padding-bottom:4px}
+.step-t{text-align:center;min-width:80px}
+.step-t-dot{width:36px;height:36px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.step-t-line{flex:1;height:3px;background:#e2e8f0;min-width:20px}
+.step-t-label{font-size:0.7rem;margin-top:4px;color:#94a3b8}
+@media(max-width:600px){.step-t{min-width:60px}.step-t-label{font-size:0.62rem}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="page-title">🚚 Track Certificate</div>
+  <div class="page-subtitle">Enter your Application ID or Tracking Number to track your certificate</div>
+</div>
+
+<div class="track-wrap">
+<!-- Search Form -->
+<div class="card" style="margin-bottom:24px">
+  <div class="card-body">
+    <form method="post">{% csrf_token %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input type="text" name="query" value="{{ query }}" class="form-control"
+               placeholder="Enter Application ID or Tracking Number…"
+               style="flex:1;min-width:200px" required>
+        <button type="submit" class="btn btn-primary">🔍 Track</button>
+      </div>
+      <div class="form-hint" style="margin-top:8px">
+        You can find your Application ID in the confirmation email or on your dashboard.
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if error %}
+<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:20px;text-align:center;color:#dc2626;margin-bottom:20px">
+  <div style="font-size:1.5rem;margin-bottom:6px">❌</div>
+  <div style="font-weight:600">{{ error }}</div>
+</div>
+{% endif %}
+
+{% if result %}
+{% with app=result %}
+<!-- Application Overview -->
+<div class="card" style="margin-bottom:20px;border:2px solid {% if app.status == 'delivered' %}#059669{% elif app.status == 'rejected' %}#dc2626{% else %}#2563eb{% endif %}">
+  <div class="card-header" style="background:{% if app.status == 'delivered' %}#ecfdf5{% elif app.status == 'rejected' %}#fef2f2{% else %}#eff6ff{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="color:{% if app.status == 'delivered' %}#065f46{% elif app.status == 'rejected' %}#991b1b{% else %}#1e40af{% endif %}">
+        Application #{{ app.get_short_id }}
+      </div>
+      <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">CERTIFICATE</div>
+        <div style="font-weight:600;margin-top:2px">{{ app.get_certificate_type_display }}</div></div>
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">SERVICE</div>
+        <div style="margin-top:2px">{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</div></div>
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">SUBMITTED</div>
+        <div style="margin-top:2px">{{ app.created_at|date:"d M Y" }}</div></div>
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">PAYMENT</div>
+        <div class="badge badge-{{ app.payment_status }}" style="margin-top:4px">{{ app.payment_status|title }}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Flow -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">Application Progress</div></div>
+  <div class="card-body">
+    {% with s=app.status %}
+    <div class="step-track">
+      {% for step_key, step_icon, step_name in statuses %}
+      <div class="step-t">
+        <div class="step-t-dot"
+             style="background:{% if s == step_key %}#2563eb;color:white{% elif s == 'delivered' or s == 'generated' and step_key in 'submitted under_verification approved' or s == 'approved' and step_key in 'submitted under_verification' or s == 'under_verification' and step_key == 'submitted' %}#059669;color:white{% else %}#f1f5f9;color:#94a3b8{% endif %}">
+          {{ step_icon }}
+        </div>
+        <div class="step-t-label" style="color:{% if s == step_key %}#2563eb{% else %}#94a3b8{% endif %}">{{ step_name }}</div>
+      </div>
+      {% if not forloop.last %}<div class="step-t-line"></div>{% endif %}
+      {% endfor %}
+    </div>
+    {% endwith %}
+  </div>
+</div>
+
+<!-- Delivery Details -->
+{% if delivery %}
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header"><div class="card-title">📦 Delivery Information</div></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">METHOD</div>
+        <div style="font-weight:600;margin-top:2px">{% if delivery.method == 'home' %}🏠 Home Delivery{% else %}🏫 Collect from College{% endif %}</div>
+      </div>
+    </div>
+    {% if delivery.method == 'home' and delivery.city %}
+    <div style="margin-top:12px;padding:10px;background:#f8fafc;border-radius:8px;font-size:0.85rem">
+      {{ delivery.city }}{% if delivery.state %}, {{ delivery.state }}{% endif %} – {{ delivery.pincode }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Courier Tracking -->
+{% if tracking %}
+<div class="card" style="margin-bottom:20px;border:2px solid #2563eb">
+  <div class="card-header" style="background:#eff6ff">
+    <div class="card-title" style="color:#1e40af">🚚 Shipment Tracking</div>
+  </div>
+  <div class="card-body">
+    <!-- Tracking steps -->
+    <div class="step-track">
+      {% for step_key, step_label in tracking.TRACKING_STATUS_CHOICES %}
+      <div class="step-t">
+        <div class="step-t-dot"
+             style="background:{% if tracking.tracking_status == step_key %}#2563eb;color:white{% elif tracking.tracking_status == 'delivered' or tracking.tracking_status == 'in_transit' and step_key in 'printed dispatched' or tracking.tracking_status == 'dispatched' and step_key == 'printed' %}#059669;color:white{% else %}#f1f5f9;color:#94a3b8{% endif %}">
+          {% if step_key == 'printed' %}🖨{% elif step_key == 'dispatched' %}📬{% elif step_key == 'in_transit' %}🚚{% else %}✅{% endif %}
+        </div>
+        <div class="step-t-label" style="color:{% if tracking.tracking_status == step_key %}#2563eb{% else %}#94a3b8{% endif %}">{{ step_label }}</div>
+      </div>
+      {% if not forloop.last %}<div class="step-t-line"></div>{% endif %}
+      {% endfor %}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:12px">
+      {% if tracking.courier_name %}
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">COURIER</div><div style="font-weight:600;margin-top:2px">{{ tracking.courier_name }}</div></div>
+      {% endif %}
+      {% if tracking.tracking_number %}
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">TRACKING NO.</div><div style="font-family:monospace;font-weight:700;font-size:0.95rem;margin-top:2px">{{ tracking.tracking_number }}</div></div>
+      {% endif %}
+      {% if tracking.dispatch_date %}
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">DISPATCHED</div><div style="margin-top:2px">{{ tracking.dispatch_date|date:"d M Y" }}</div></div>
+      {% endif %}
+      {% if tracking.expected_delivery_date %}
+      <div><div style="font-size:0.72rem;color:#94a3b8;font-weight:700">EXPECTED DELIVERY</div><div style="font-weight:700;color:#dc2626;margin-top:2px">{{ tracking.expected_delivery_date|date:"d M Y" }}</div></div>
+      {% endif %}
+    </div>
+    {% if tracking.notes %}
+    <div style="margin-top:10px;padding:10px;background:#fffbeb;border-radius:8px;font-size:0.85rem">{{ tracking.notes }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}
+
+<div style="text-align:center;margin-top:20px;font-size:0.82rem;color:#94a3b8">
+  Need help? Contact the university registrar or visit the admin office.
+</div>
+</div>
+{% endblock %}

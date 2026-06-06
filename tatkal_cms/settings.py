@@ -227,6 +227,7 @@ NORMAL_FEE = {
     'internship': 100, 'character': 50
 }
 TATKAL_MULTIPLIER = 3
+DELIVERY_FEE = int(os.environ.get('DELIVERY_FEE', 100))
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'

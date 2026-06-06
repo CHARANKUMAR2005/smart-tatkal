@@ -227,8 +227,11 @@ tbody tr:hover{background:var(--gray-50)}
       <a href="/apply/" class="nav-link tatkal">⚡ Apply Certificate</a>
       <a href="/applications/" class="nav-link">My Applications</a>
       {% endif %}
+      <a href="/track/" class="nav-link">🚚 Track</a>
       {% if user.role in 'staff,admin' %}
       <a href="/staff/applications/" class="nav-link">Applications Queue</a>
+      <a href="/admin/analytics/" class="nav-link">📊 Analytics</a>
+      <a href="/admin/reports/" class="nav-link">📥 Reports</a>
       {% endif %}
       {% if user.role == 'admin' %}
       <a href="/admin/users/" class="nav-link">Users</a>
@@ -259,6 +262,7 @@ tbody tr:hover{background:var(--gray-50)}
     <a href="/apply/" class="sidebar-link {% block s_apply %}{% endblock %}"><span class="icon">⚡</span> Apply Certificate</a>
     <a href="/applications/" class="sidebar-link {% block s_apps %}{% endblock %}"><span class="icon">📋</span> My Applications</a>
     <a href="/notifications/" class="sidebar-link"><span class="icon">🔔</span> Notifications</a>
+    <a href="/track/" class="sidebar-link"><span class="icon">🚚</span> Track Certificate</a>
     {% elif user.role == 'staff' %}
     <div class="sidebar-section">Staff</div>
     <a href="/dashboard/" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
@@ -266,10 +270,18 @@ tbody tr:hover{background:var(--gray-50)}
     <a href="/staff/applications/?status=submitted" class="sidebar-link"><span class="icon">📥</span> New Applications</a>
     <a href="/staff/applications/?status=under_verification" class="sidebar-link"><span class="icon">🔍</span> Under Review</a>
     <a href="/staff/applications/?sort=tatkal" class="sidebar-link"><span class="icon">⚡</span> Tatkal Queue</a>
+    <a href="/track/" class="sidebar-link"><span class="icon">🚚</span> Track Certificate</a>
+    <a href="/admin/analytics/" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
+    <a href="/admin/availability/" class="sidebar-link"><span class="icon">📅</span> Availability</a>
+    <a href="/admin/reports/" class="sidebar-link"><span class="icon">📥</span> Reports</a>
     {% elif user.role == 'admin' %}
     <div class="sidebar-section">Admin</div>
     <a href="/dashboard/" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
     <a href="/staff/applications/" class="sidebar-link"><span class="icon">📋</span> All Applications</a>
+    <a href="/admin/analytics/" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
+    <a href="/admin/availability/" class="sidebar-link"><span class="icon">📅</span> Availability Calendar</a>
+    <a href="/admin/reports/" class="sidebar-link"><span class="icon">📥</span> Reports</a>
+    <a href="/track/" class="sidebar-link"><span class="icon">🚚</span> Track Certificate</a>
     <a href="/admin/users/" class="sidebar-link"><span class="icon">👥</span> Manage Users</a>
     <a href="/admin/audit/" class="sidebar-link"><span class="icon">🔍</span> Audit Log</a>
     <a href="/admin/" class="sidebar-link"><span class="icon">⚙️</span> Admin Panel</a>

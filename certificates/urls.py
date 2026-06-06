@@ -12,4 +12,9 @@ urlpatterns = [
     path('ajax/fee/', views.get_fee_ajax, name='get_fee_ajax'),
     path('api/colleges/search/', views.college_search_api, name='college_search_api'),
     path('admin/test-email/', views.test_email_view, name='test_email'),
+    # New routes
+    path('track/', views.track_certificate_view, name='track_certificate'),
+    path('admin/analytics/', views.analytics_view, name='analytics'),
+    path('admin/availability/', views.admin_availability_view, name='admin_availability'),
+    path('admin/reports/', views.reports_view, name='reports'),
 ]

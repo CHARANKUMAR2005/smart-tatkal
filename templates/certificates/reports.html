@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block extra_css %}
+<style>
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.report-card{background:white;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;transition:box-shadow 0.2s}
+.report-card:hover{box-shadow:0 4px 16px rgba(15,23,42,0.08)}
+.report-icon{font-size:2rem;margin-bottom:8px}
+.period-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.period-tab{padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;font-size:0.85rem;font-weight:600;cursor:pointer;text-decoration:none;color:#475569;background:white}
+.period-tab.active{background:#0d1b3e;color:white;border-color:#0d1b3e}
+@media(max-width:600px){.report-grid{grid-template-columns:1fr}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="page-title">📥 Reports</div>
+      <div class="page-subtitle">Download application, delivery, and crowd reports</div>
+    </div>
+    <a href="{% url 'analytics' %}" class="btn btn-outline btn-sm">📊 Analytics</a>
+  </div>
+</div>
+
+<!-- Period Selector -->
+<div class="period-tabs">
+  <a href="?period=daily" class="period-tab {% if period == 'daily' %}active{% endif %}">📅 Today</a>
+  <a href="?period=weekly" class="period-tab {% if period == 'weekly' %}active{% endif %}">📆 This Week</a>
+  <a href="?period=monthly" class="period-tab {% if period == 'monthly' %}active{% endif %}">🗓 This Month</a>
+</div>
+
+<!-- Summary Stats -->
+<div class="stats-grid stagger" style="margin-bottom:24px">
+  <div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📋</div><div><div class="stat-label">Total Applications</div><div class="stat-value">{{ summary.total }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5">✅</div><div><div class="stat-label">Approved</div><div class="stat-value">{{ summary.approved }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#fef2f2">❌</div><div><div class="stat-label">Rejected</div><div class="stat-value">{{ summary.rejected }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#f0fdf4">🏠</div><div><div class="stat-label">Home Deliveries</div><div class="stat-value">{{ summary.home_delivery }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon" style="background:#d1fae5">💰</div><div><div class="stat-label">Revenue (Paid)</div><div class="stat-value" style="font-size:1.2rem">₹{{ summary.revenue|floatformat:0 }}</div></div></div>
+</div>
+
+<!-- Report Cards -->
+<div class="report-grid">
+  <!-- Applications Report -->
+  <div class="report-card">
+    <div style="padding:20px;border-bottom:1px solid #f1f5f9">
+      <div class="report-icon">📋</div>
+      <div style="font-weight:700;font-size:1rem">Applications Report</div>
+      <div style="font-size:0.82rem;color:#64748b;margin-top:4px">All application details including student, certificate type, status, and fee.</div>
+    </div>
+    <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="?type=applications&period={{ period }}&format=excel" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📊 Excel (.xlsx)
+      </a>
+      <a href="?type=applications&period={{ period }}&format=pdf" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📄 PDF
+      </a>
+    </div>
+    <div style="padding:0 16px 12px;font-size:0.75rem;color:#94a3b8">Period: {{ start_date|date:"d M Y" }} – {{ today|date:"d M Y" }}</div>
+  </div>
+
+  <!-- Delivery Report -->
+  <div class="report-card">
+    <div style="padding:20px;border-bottom:1px solid #f1f5f9">
+      <div class="report-icon">🚚</div>
+      <div style="font-weight:700;font-size:1rem">Delivery Report</div>
+      <div style="font-size:0.82rem;color:#64748b;margin-top:4px">Home delivery applications with addresses, courier names, and tracking numbers.</div>
+    </div>
+    <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="?type=delivery&period={{ period }}&format=excel" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📊 Excel (.xlsx)
+      </a>
+      <a href="?type=delivery&period={{ period }}&format=pdf" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📄 PDF
+      </a>
+    </div>
+    <div style="padding:0 16px 12px;font-size:0.75rem;color:#94a3b8">Only home delivery applications</div>
+  </div>
+
+  <!-- Crowd Analysis Report -->
+  <div class="report-card">
+    <div style="padding:20px;border-bottom:1px solid #f1f5f9">
+      <div class="report-icon">📊</div>
+      <div style="font-weight:700;font-size:1rem">Crowd Analysis Report</div>
+      <div style="font-size:0.82rem;color:#64748b;margin-top:4px">Daily application counts with crowd level classification (Low / Medium / High / Very High).</div>
+    </div>
+    <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="?type=crowd&period={{ period }}&format=excel" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📊 Excel (.xlsx)
+      </a>
+      <a href="?type=crowd&period={{ period }}&format=pdf" class="btn btn-outline btn-sm" style="flex:1;text-align:center">
+        📄 PDF
+      </a>
+    </div>
+    <div style="padding:0 16px 12px;font-size:0.75rem;color:#94a3b8">Day-by-day breakdown with crowd level</div>
+  </div>
+</div>
+
+<div style="padding:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:0.82rem;color:#92400e">
+  💡 <strong>Tip:</strong> Use the period tabs above to change the report date range. "Today" = only today, "This Week" = last 7 days, "This Month" = from 1st of this month.
+</div>
+{% endblock %}

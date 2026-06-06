@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Admin Availability Calendar{% endblock %}
+{% block extra_css %}
+<style>
+.cal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:24px}
+@media(max-width:900px){.cal-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.cal-grid{grid-template-columns:1fr}}
+.cal-month{background:white;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden}
+.cal-month-header{background:#0d1b3e;color:white;padding:12px;text-align:center;font-weight:700}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:#f8fafc}
+.cal-weekday{text-align:center;padding:6px 0;font-size:0.7rem;font-weight:700;color:#64748b}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-day{min-height:46px;border:1px solid #f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:0.82rem;transition:all 0.15s;position:relative;padding:3px}
+.cal-day:hover:not(.empty):not(.past){background:#eff6ff;border-color:#2563eb}
+.cal-day.empty{background:#fafafa;cursor:default}
+.cal-day.past{opacity:0.45;cursor:default}
+.cal-day.today{border:2px solid #2563eb;font-weight:800}
+.cal-day-num{font-weight:600;font-size:0.8rem}
+.cal-day-badge{font-size:0.55rem;padding:1px 5px;border-radius:8px;color:white;margin-top:2px;font-weight:700}
+/* Crowd colors */
+.crowd-none .cal-day-num{color:#94a3b8}
+.crowd-low{background:#f0fdf4}
+.crowd-low .cal-day-num{color:#065f46}
+.crowd-medium{background:#fffbeb}
+.crowd-medium .cal-day-num{color:#92400e}
+.crowd-high{background:#fff7ed}
+.crowd-high .cal-day-num{color:#c2410c}
+.crowd-very_high{background:#fef2f2}
+.crowd-very_high .cal-day-num{color:#991b1b}
+/* Availability overlay */
+.avail-available{border-left:3px solid #059669}
+.avail-busy{border-left:3px solid #f59e0b}
+.avail-holiday{border-left:3px solid #dc2626;background:#fef2f2!important}
+.avail-half_day{border-left:3px solid #8b5cf6}
+.avail-dot{width:6px;height:6px;border-radius:50%;margin:1px auto}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:12px;padding:24px;width:100%;max-width:420px;margin:16px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="page-title">📅 Admin Availability Calendar</div>
+      <div class="page-subtitle">Mark available dates, holidays, and busy days for student guidance</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="{% url 'analytics' %}" class="btn btn-outline btn-sm">📊 Analytics</a>
+    </div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-body" style="padding:12px 16px">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:0.8rem;align-items:center">
+      <strong style="font-size:0.82rem">Legend:</strong>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#f0fdf4;border:1px solid #059669;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Low Crowd</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#fffbeb;border:1px solid #d97706;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Medium Crowd</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#fff7ed;border:1px solid #ea580c;border-radius:2px;margin-right:4px;vertical-align:middle"></span>High Crowd</span>
+      <span><span style="display:inline-block;width:12px;height:12px;background:#fef2f2;border:1px solid #dc2626;border-radius:2px;margin-right:4px;vertical-align:middle"></span>Very High</span>
+      <span style="border-left:3px solid #059669;padding-left:4px">Available</span>
+      <span style="border-left:3px solid #f59e0b;padding-left:4px">Busy</span>
+      <span style="border-left:3px solid #dc2626;padding-left:4px">Holiday</span>
+      <span style="border-left:3px solid #8b5cf6;padding-left:4px">Half Day</span>
+    </div>
+  </div>
+</div>
+
+<!-- Recommended Collection Days -->
+{% if recommendations %}
+<div class="card" style="margin-bottom:20px;border:2px solid #059669">
+  <div class="card-header" style="background:#ecfdf5">
+    <div class="card-title" style="color:#065f46">✅ Recommended Collection Days</div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      {% for rec in recommendations %}
+      <div style="padding:12px;background:white;border:1px solid #a7f3d0;border-radius:8px">
+        <div style="font-weight:700;color:#065f46">{{ rec.date|date:"l, d M Y" }}</div>
+        <div style="font-size:0.78rem;color:#64748b;margin-top:4px">
+          {% if rec.crowd == 0 %}No applications yet{% else %}{{ rec.crowd }} applications — Low Crowd{% endif %}
+          {% if rec.avail_status == 'available' %} · Admin Available{% elif rec.avail_status == 'half_day' %} · Half Day{% endif %}
+        </div>
+        {% if rec.notes %}<div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">{{ rec.notes }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div style="font-size:0.75rem;color:#94a3b8;margin-top:12px">Based on upcoming workload and admin availability. Weekends excluded.</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Calendar -->
+<div class="cal-grid">
+  {% for month in months %}
+  <div class="cal-month">
+    <div class="cal-month-header">{{ month.name }}</div>
+    <div class="cal-weekdays">
+      <div class="cal-weekday">Sun</div><div class="cal-weekday">Mon</div>
+      <div class="cal-weekday">Tue</div><div class="cal-weekday">Wed</div>
+      <div class="cal-weekday">Thu</div><div class="cal-weekday">Fri</div>
+      <div class="cal-weekday">Sat</div>
+    </div>
+    <div class="cal-days">
+      {% for week in month.weeks %}
+      {% for day in week %}
+      {% if day is None %}
+      <div class="cal-day empty"></div>
+      {% else %}
+      <div class="cal-day crowd-{{ day.crowd }} {% if day.avail %}avail-{{ day.avail.status }}{% endif %} {% if day.past %}past{% endif %} {% if day.today %}today{% endif %}"
+           {% if not day.past %}onclick="openModal('{{ day.date|date:'Y-m-d' }}', '{{ day.date|date:'d M Y' }}', '{{ day.avail.status|default:'' }}', '{{ day.avail.notes|default:''|escapejs }}')"{% endif %}
+           title="{{ day.date|date:'d M Y' }} — {{ day.crowd_count }} applications{% if day.avail %} · {{ day.avail.get_status_display }}{% if day.avail.notes %}: {{ day.avail.notes }}{% endif %}{% endif %}">
+        <div class="cal-day-num">{{ day.dn }}</div>
+        {% if day.crowd_count > 0 %}
+        <div class="cal-day-badge" style="background:{% if day.crowd == 'low' %}#059669{% elif day.crowd == 'medium' %}#d97706{% elif day.crowd == 'high' %}#ea580c{% else %}#dc2626{% endif %}">{{ day.crowd_count }}</div>
+        {% endif %}
+        {% if day.avail %}
+        <div class="avail-dot" style="background:{% if day.avail.status == 'available' %}#059669{% elif day.avail.status == 'busy' %}#f59e0b{% elif day.avail.status == 'holiday' %}#dc2626{% else %}#8b5cf6{% endif %}"></div>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal for setting availability -->
+<div class="modal-overlay" id="availModal">
+  <div class="modal-box">
+    <div style="font-weight:700;font-size:1rem;margin-bottom:16px">📅 Set Availability — <span id="modalDate"></span></div>
+    <form method="post" id="availForm">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="set">
+      <input type="hidden" name="date" id="modalDateInput">
+      <div class="form-group">
+        <label class="form-label">STATUS</label>
+        <select name="status" class="form-control form-select" id="modalStatus">
+          <option value="available">✅ Available</option>
+          <option value="busy">🟡 Busy</option>
+          <option value="holiday">🔴 Holiday</option>
+          <option value="half_day">🟣 Half Day</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">NOTES (optional)</label>
+        <input type="text" name="notes" class="form-control" id="modalNotes" placeholder="e.g. Staff meeting, Public holiday…" maxlength="200">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button type="submit" class="btn btn-primary" style="flex:1">Save</button>
+        <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button type="button" class="btn btn-outline" style="color:#dc2626;border-color:#dc2626" onclick="clearDate()">Clear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(dateVal, dateLabel, currentStatus, currentNotes) {
+  document.getElementById('modalDate').textContent = dateLabel;
+  document.getElementById('modalDateInput').value = dateVal;
+  document.getElementById('modalStatus').value = currentStatus || 'available';
+  document.getElementById('modalNotes').value = currentNotes || '';
+  document.getElementById('availModal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('availModal').classList.remove('open');
+}
+function clearDate() {
+  document.querySelector('[name="action"]').value = 'delete';
+  document.getElementById('availForm').submit();
+}
+document.getElementById('availModal').addEventListener('click', function(e) {
+  if(e.target === this) closeModal();
+});
+</script>
+{% endblock %}

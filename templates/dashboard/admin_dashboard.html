@@ -15,11 +15,19 @@
   <div class="stat-card"><div class="stat-icon" style="background:#d1fae5">💰</div><div><div class="stat-label">Total Revenue</div><div class="stat-value" style="font-size:1.3rem">₹{{ total_revenue|floatformat:0 }}</div><div class="stat-sub">Tatkal: ₹{{ tatkal_revenue|floatformat:0 }}</div></div></div>
 </div>
 
+<!-- Quick Links -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+  <a href="{% url 'analytics' %}" class="btn btn-primary">📊 Analytics</a>
+  <a href="{% url 'admin_availability' %}" class="btn btn-outline">📅 Availability Calendar</a>
+  <a href="{% url 'reports' %}" class="btn btn-outline">📥 Reports</a>
+  <a href="{% url 'track_certificate' %}" class="btn btn-outline">🚚 Track Certificate</a>
+  <a href="/admin/users/" class="btn btn-outline">👥 Users</a>
+</div>
+
 <div class="card">
   <div class="card-header">
     <div class="card-title">Recent Applications</div>
     <div style="display:flex;gap:8px">
-      <a href="/admin/users/" class="btn btn-outline btn-sm">👥 Users</a>
       <a href="/staff/applications/" class="btn btn-primary btn-sm">📋 All Apps</a>
     </div>
   </div>

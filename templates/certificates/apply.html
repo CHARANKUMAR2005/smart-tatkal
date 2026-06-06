@@ -82,6 +82,64 @@
         <label class="form-label">PURPOSE OF CERTIFICATE</label>
         <textarea name="purpose" class="form-control" rows="3" placeholder="Explain why you need this certificate..."></textarea>
       </div>
+      <!-- Delivery Method -->
+      <div class="form-group">
+        <label class="form-label">DELIVERY METHOD <span style="color:#dc2626">*</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="deliveryGrid">
+          <label style="cursor:pointer">
+            <input type="radio" name="delivery_method" value="collect" checked style="display:none" onchange="setDelivery('collect')">
+            <div id="del-collect" style="padding:14px;border:2px solid #2563eb;border-radius:10px;background:#eff6ff;text-align:center">
+              <div style="font-size:1.4rem">🏫</div>
+              <div style="font-weight:700;font-size:0.9rem;margin-top:4px">Collect from College</div>
+              <div style="font-size:0.75rem;color:#64748b;margin-top:2px">Free</div>
+            </div>
+          </label>
+          <label style="cursor:pointer">
+            <input type="radio" name="delivery_method" value="home" style="display:none" onchange="setDelivery('home')">
+            <div id="del-home" style="padding:14px;border:2px solid #e2e8f0;border-radius:10px;text-align:center">
+              <div style="font-size:1.4rem">🏠</div>
+              <div style="font-weight:700;font-size:0.9rem;margin-top:4px">Home Delivery</div>
+              <div style="font-size:0.75rem;color:#dc2626;margin-top:2px">+₹{{ delivery_fee }}</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Home Delivery Address (hidden by default) -->
+      <div id="deliveryAddress" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:0.85rem;color:#0d1b3e;margin-bottom:12px">🏠 Delivery Address</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">HOUSE NO</label>
+            <input type="text" name="house_no" class="form-control" placeholder="e.g. 12-3/A">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">STREET</label>
+            <input type="text" name="street" class="form-control" placeholder="Street / Road name">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">AREA / LOCALITY</label>
+            <input type="text" name="area" class="form-control" placeholder="Colony / Area">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">CITY</label>
+            <input type="text" name="city" class="form-control" placeholder="City">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">STATE</label>
+            <input type="text" name="del_state" class="form-control" placeholder="State">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">PINCODE</label>
+            <input type="text" name="pincode" class="form-control" maxlength="10" placeholder="6-digit pincode">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="font-size:0.78rem">MOBILE NUMBER (for delivery)</label>
+          <input type="tel" name="delivery_mobile" class="form-control" maxlength="15" placeholder="10-digit mobile number">
+        </div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">SUPPORTING DOCUMENT 1</label>
         <input type="file" name="document1" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
@@ -119,8 +177,14 @@
         <div style="font-weight:700;margin-top:2px" id="sum-service">Normal</div>
       </div>
       <div style="border-top:1px solid #f1f5f9;padding-top:12px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div style="font-weight:700">Total Fee</div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px">
+          <span style="color:#64748b">Certificate Fee</span><span id="sum-cert-fee">₹0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:8px" id="sum-delivery-row">
+          <span style="color:#64748b">Delivery Fee</span><span id="sum-delivery-fee">Free</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e2e8f0;padding-top:8px">
+          <div style="font-weight:700">Total</div>
           <div style="font-size:1.5rem;font-weight:800;color:#0d1b3e" id="sum-fee">₹0</div>
         </div>
         <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">Payment due at next step</div>
@@ -151,9 +215,11 @@
 <script>
 const fees = {{ fees|safe }};
 const tatkalMult = {{ tatkal_multiplier }};
+const deliveryFee = {{ delivery_fee }};
 let selectedCert = null;
 let isTatkal = false;
 let certName = '';
+let isHomeDelivery = false;
 
 function selectCert(code, name) {
   if(selectedCert) {
@@ -177,17 +243,29 @@ function setService(tatkal) {
   updateSummary();
 }
 
+function setDelivery(method) {
+  isHomeDelivery = method === 'home';
+  document.getElementById('deliveryAddress').style.display = isHomeDelivery ? 'block' : 'none';
+  document.getElementById('del-collect').style.border = isHomeDelivery ? '2px solid #e2e8f0' : '2px solid #2563eb';
+  document.getElementById('del-collect').style.background = isHomeDelivery ? '' : '#eff6ff';
+  document.getElementById('del-home').style.border = isHomeDelivery ? '2px solid #dc2626' : '2px solid #e2e8f0';
+  document.getElementById('del-home').style.background = isHomeDelivery ? '#fff8f8' : '';
+  updateSummary();
+}
+
 function updateSummary() {
   if(!selectedCert) return;
   const baseFee = fees[selectedCert] || 0;
-  const fee = isTatkal ? baseFee * tatkalMult : baseFee;
-  const normalFee = baseFee;
-  const tatkalFee = baseFee * tatkalMult;
-  document.getElementById('normal-fee').textContent = '₹' + normalFee;
-  document.getElementById('tatkal-fee').textContent = '₹' + tatkalFee;
+  const certFee = isTatkal ? baseFee * tatkalMult : baseFee;
+  const dFee = isHomeDelivery ? deliveryFee : 0;
+  const total = certFee + dFee;
+  document.getElementById('normal-fee').textContent = '₹' + baseFee;
+  document.getElementById('tatkal-fee').textContent = '₹' + (baseFee * tatkalMult);
   document.getElementById('sum-cert').textContent = certName;
   document.getElementById('sum-service').textContent = isTatkal ? '⚡ Tatkal (24-48hrs)' : '📄 Normal (5-7 days)';
-  document.getElementById('sum-fee').textContent = '₹' + fee;
+  document.getElementById('sum-cert-fee').textContent = '₹' + certFee;
+  document.getElementById('sum-delivery-fee').textContent = isHomeDelivery ? '+₹' + dFee : 'Free';
+  document.getElementById('sum-fee').textContent = '₹' + total;
   document.getElementById('summary-empty').style.display = 'none';
   document.getElementById('summary-content').style.display = 'block';
   document.getElementById('tatkal-info').style.display = isTatkal ? 'block' : 'none';
@@ -201,6 +279,12 @@ function validateForm() {
   const collegeId = document.getElementById('college-hidden').value;
   const institutionId = document.getElementById('institution-hidden').value;
   if(!collegeId && !institutionId) { alert('Please select a valid college or institution from the suggestions.'); return false; }
+  if(isHomeDelivery) {
+    const city = document.querySelector('[name="city"]').value.trim();
+    const pincode = document.querySelector('[name="pincode"]').value.trim();
+    const mobile = document.querySelector('[name="delivery_mobile"]').value.trim();
+    if(!city || !pincode || !mobile) { alert('Please fill in City, Pincode, and Mobile for home delivery.'); return false; }
+  }
   return true;
 }
 

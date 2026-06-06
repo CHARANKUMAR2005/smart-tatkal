@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from accounts.models import User, StudentProfile, Institution, College
 import uuid
 
@@ -79,3 +80,66 @@ class ApplicationStatusHistory(models.Model):
 
     def __str__(self):
         return f"{self.application.get_short_id()} → {self.to_status}"
+
+
+class DeliveryDetails(models.Model):
+    DELIVERY_CHOICES = [
+        ('collect', 'Collect from College'),
+        ('home', 'Home Delivery'),
+    ]
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='delivery')
+    method = models.CharField(max_length=10, choices=DELIVERY_CHOICES, default='collect')
+    house_no = models.CharField(max_length=50, blank=True)
+    street = models.CharField(max_length=200, blank=True)
+    area = models.CharField(max_length=200, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    pincode = models.CharField(max_length=10, blank=True)
+    mobile = models.CharField(max_length=15, blank=True)
+    delivery_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.application.get_short_id()} – {self.get_method_display()}"
+
+
+class CourierTracking(models.Model):
+    TRACKING_STATUS_CHOICES = [
+        ('printed', 'Printed'),
+        ('dispatched', 'Dispatched'),
+        ('in_transit', 'In Transit'),
+        ('delivered', 'Delivered'),
+    ]
+    application = models.OneToOneField(Application, on_delete=models.CASCADE, related_name='tracking')
+    courier_name = models.CharField(max_length=100, blank=True)
+    tracking_number = models.CharField(max_length=100, blank=True, db_index=True)
+    dispatch_date = models.DateField(null=True, blank=True)
+    expected_delivery_date = models.DateField(null=True, blank=True)
+    tracking_status = models.CharField(max_length=20, choices=TRACKING_STATUS_CHOICES, default='printed')
+    notes = models.TextField(blank=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.application.get_short_id()} – {self.tracking_number or 'No tracking'}"
+
+
+class AdminAvailability(models.Model):
+    STATUS_CHOICES = [
+        ('available', 'Available'),
+        ('busy', 'Busy'),
+        ('holiday', 'Holiday'),
+        ('half_day', 'Half Day'),
+    ]
+    date = models.DateField(unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
+    notes = models.CharField(max_length=200, blank=True)
+    set_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['date']
+        verbose_name_plural = 'Admin Availabilities'
+
+    def __str__(self):
+        return f"{self.date} – {self.get_status_display()}"

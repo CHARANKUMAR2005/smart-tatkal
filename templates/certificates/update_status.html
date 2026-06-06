@@ -23,6 +23,15 @@
       <div style="background:#f8fafc;border-radius:8px;padding:10px"><strong>Purpose:</strong><br>{{ application.purpose }}</div>
       {% endif %}
     </div>
+    <!-- Delivery Method -->
+    {% with delivery=application.delivery %}
+    {% if delivery %}
+    <div style="display:flex;gap:8px;align-items:center">
+      <strong>Delivery:</strong>
+      {% if delivery.method == 'home' %}🏠 Home Delivery ({{ delivery.city }}){% else %}🏫 Collect from College{% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
     <!-- Documents -->
     {% if application.document1 or application.document2 or application.document3 %}
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9">
@@ -60,7 +69,44 @@
         <label class="form-label">INTERNAL NOTE</label>
         <textarea name="note" class="form-control" rows="2" placeholder="Internal processing note..."></textarea>
       </div>
-      <div style="display:flex;gap:10px">
+      <!-- Courier Tracking Section -->
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9">
+        <div style="font-weight:700;font-size:0.9rem;color:#0d1b3e;margin-bottom:12px">🚚 Courier / Postal Tracking <span style="font-weight:400;color:#94a3b8;font-size:0.78rem">(optional)</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">COURIER / POST SERVICE</label>
+            <input type="text" name="courier_name" class="form-control" placeholder="e.g. Speed Post, DTDC" value="{{ tracking.courier_name|default:'' }}">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">TRACKING NUMBER</label>
+            <input type="text" name="tracking_number" class="form-control" placeholder="e.g. EW1234567IN" value="{{ tracking.tracking_number|default:'' }}">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">DISPATCH DATE</label>
+            <input type="date" name="dispatch_date" class="form-control" value="{{ tracking.dispatch_date|date:'Y-m-d'|default:'' }}">
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:0.78rem">EXPECTED DELIVERY DATE</label>
+            <input type="date" name="expected_delivery_date" class="form-control" value="{{ tracking.expected_delivery_date|date:'Y-m-d'|default:'' }}">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label class="form-label" style="font-size:0.78rem">TRACKING STATUS</label>
+          <select name="tracking_status" class="form-control form-select">
+            <option value="">— No change —</option>
+            <option value="printed" {% if tracking.tracking_status == 'printed' %}selected{% endif %}>🖨 Printed</option>
+            <option value="dispatched" {% if tracking.tracking_status == 'dispatched' %}selected{% endif %}>📬 Dispatched</option>
+            <option value="in_transit" {% if tracking.tracking_status == 'in_transit' %}selected{% endif %}>🚚 In Transit</option>
+            <option value="delivered" {% if tracking.tracking_status == 'delivered' %}selected{% endif %}>✅ Delivered</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label" style="font-size:0.78rem">TRACKING NOTES</label>
+          <textarea name="tracking_notes" class="form-control" rows="2" placeholder="Additional tracking notes...">{{ tracking.notes|default:'' }}</textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px">
         <button type="submit" class="btn btn-primary">Update Status</button>
         <a href="/applications/{{ application.application_id }}/" class="btn btn-outline">Cancel</a>
       </div>
