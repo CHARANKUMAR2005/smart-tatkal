@@ -37,7 +37,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'tatkal_cms.middleware.RelaxedCsrfMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -125,6 +125,11 @@ if _render_base and _render_base != BASE_URL:
 # ─── HTTPS proxy header (Render / most cloud platforms terminate SSL) ─────────
 # Lets Django know the original request was HTTPS even though gunicorn sees HTTP.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ─── Secure cookies on HTTPS (Render / any production deployment) ─────────────
+if not DEBUG:
+    CSRF_COOKIE_SECURE    = True
+    SESSION_COOKIE_SECURE = True
 
 # ─── University branding ──────────────────────────────────────────────────────
 UNIVERSITY_NAME    = os.environ.get('UNIVERSITY_NAME', 'Kakatiya University')
