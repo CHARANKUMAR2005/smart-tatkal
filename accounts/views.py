@@ -546,16 +546,46 @@ def dashboard_view(request):
     
     if user.role == 'student':
         try:
-            # Force fresh DB read — don't rely on Django's cached reverse accessor
             profile = StudentProfile.objects.select_related('user').get(user=user)
             applications = Application.objects.filter(student=profile)
+
+            # Appointment recommendations for students with approved/generated certs
+            from certificates.models import AdminAvailability
+            from django.db.models import Count
+            from django.db.models.functions import TruncDate
+            from datetime import date as date_type, timedelta
+            today = date_type.today()
+            has_approved = applications.filter(status__in=['approved', 'generated']).exists()
+            recommendations = []
+            if has_approved:
+                end_date = today + timedelta(days=60)
+                avail_map = {a.date: a for a in AdminAvailability.objects.filter(date__gte=today, date__lte=end_date)}
+                count_map = {item['day']: item['count'] for item in
+                             Application.objects.filter(created_at__date__gte=today)
+                             .annotate(day=TruncDate('created_at')).values('day').annotate(count=Count('id'))}
+                for i in range(60):
+                    d = today + timedelta(days=i + 1)
+                    if d.weekday() >= 5:
+                        continue
+                    av = avail_map.get(d)
+                    if av and av.status in ('holiday', 'busy'):
+                        continue
+                    if count_map.get(d, 0) <= 20:
+                        recommendations.append({'date': d, 'crowd': count_map.get(d, 0),
+                                                 'avail_status': av.status if av else 'available',
+                                                 'notes': av.notes if av else ''})
+                    if len(recommendations) >= 3:
+                        break
+
             context.update({
                 'profile': profile,
                 'applications': applications[:5],
                 'total_apps': applications.count(),
-                'pending_apps': applications.filter(status__in=['submitted','under_verification','document_issue']).count(),
-                'approved_apps': applications.filter(status__in=['approved','generated','delivered']).count(),
+                'pending_apps': applications.filter(status__in=['submitted', 'under_verification', 'document_issue']).count(),
+                'approved_apps': applications.filter(status__in=['approved', 'generated', 'delivered']).count(),
                 'notifications': user.notifications.filter(is_read=False)[:5],
+                'has_approved': has_approved,
+                'recommendations': recommendations,
             })
         except StudentProfile.DoesNotExist:
             return redirect('profile_setup')
@@ -570,21 +600,94 @@ def dashboard_view(request):
         })
     
     elif user.role == 'admin':
-        from certificates.models import Certificate
+        from certificates.models import Certificate, AdminAvailability
         from payments.models import Payment
-        from django.db.models import Sum
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
+        from datetime import date as date_type, timedelta
         applications = Application.objects.all()
         total_revenue = Payment.objects.filter(status='success').aggregate(Sum('amount'))['amount__sum'] or 0
         tatkal_revenue = Payment.objects.filter(status='success', application__is_tatkal=True).aggregate(Sum('amount'))['amount__sum'] or 0
+
+        today = date_type.today()
+        thirty_ago = today - timedelta(days=29)
+
+        # Today's stats
+        today_apps = applications.filter(created_at__date=today)
+        stats_today = {
+            'total': today_apps.count(),
+            'pending': today_apps.filter(status__in=['submitted', 'under_verification']).count(),
+            'approved': today_apps.filter(status__in=['approved', 'generated']).count(),
+            'rejected': today_apps.filter(status='rejected').count(),
+            'delivered': today_apps.filter(status='delivered').count(),
+        }
+
+        # 30-day crowd analysis
+        daily_qs = (applications.filter(created_at__date__gte=thirty_ago)
+                    .annotate(day=TruncDate('created_at'))
+                    .values('day').annotate(count=Count('id')).order_by('day'))
+        daily_data = {item['day']: item['count'] for item in daily_qs}
+        days_list = []
+        for i in range(30):
+            d = thirty_ago + timedelta(days=i)
+            cnt = daily_data.get(d, 0)
+            crowd = 'none' if cnt == 0 else 'low' if cnt <= 20 else 'medium' if cnt <= 50 else 'high' if cnt <= 100 else 'very_high'
+            days_list.append({'date': d, 'count': cnt, 'crowd': crowd, 'label': d.strftime('%d %b')})
+        non_zero = [d for d in days_list if d['count'] > 0]
+        busiest = max(non_zero, key=lambda x: x['count']) if non_zero else None
+        least_busy = min(non_zero, key=lambda x: x['count']) if non_zero else None
+        avg_per_day = round(sum(d['count'] for d in days_list) / 30, 1)
+
+        # Weekly trend (last 8 weeks)
+        weekly_qs = list(applications.filter(created_at__date__gte=today - timedelta(weeks=8))
+                         .annotate(week=TruncWeek('created_at'))
+                         .values('week').annotate(count=Count('id')).order_by('week'))
+
+        # Monthly trend (last 6 months)
+        monthly_qs = list(applications.filter(created_at__date__gte=today - timedelta(days=180))
+                          .annotate(month=TruncMonth('created_at'))
+                          .values('month').annotate(count=Count('id')).order_by('month'))
+
+        # Availability recommendations (next 3 low-crowd weekdays)
+        end_date = today + timedelta(days=60)
+        avail_map = {a.date: a for a in AdminAvailability.objects.filter(date__gte=today, date__lte=end_date)}
+        count_map = {item['day']: item['count'] for item in
+                     applications.filter(created_at__date__gte=today)
+                     .annotate(day=TruncDate('created_at')).values('day').annotate(count=Count('id'))}
+        recommendations = []
+        for i in range(60):
+            d = today + timedelta(days=i + 1)
+            if d.weekday() >= 5:
+                continue
+            av = avail_map.get(d)
+            if av and av.status in ('holiday', 'busy'):
+                continue
+            if count_map.get(d, 0) <= 20:
+                recommendations.append({'date': d, 'crowd': count_map.get(d, 0),
+                                         'avail_status': av.status if av else 'available',
+                                         'notes': av.notes if av else ''})
+            if len(recommendations) >= 3:
+                break
+
         context.update({
             'total_applications': applications.count(),
-            'pending_applications': applications.filter(status__in=['submitted','under_verification']).count(),
-            'approved_applications': applications.filter(status__in=['approved','generated','delivered']).count(),
+            'pending_applications': applications.filter(status__in=['submitted', 'under_verification']).count(),
+            'approved_applications': applications.filter(status__in=['approved', 'generated', 'delivered']).count(),
             'total_students': StudentProfile.objects.count(),
             'total_staff': StaffProfile.objects.count(),
             'total_revenue': total_revenue,
             'tatkal_revenue': tatkal_revenue,
             'recent_apps': applications[:10],
+            # Analytics
+            'stats_today': stats_today,
+            'days_list': days_list,
+            'busiest': busiest,
+            'least_busy': least_busy,
+            'avg_per_day': avg_per_day,
+            'weekly_counts': weekly_qs,
+            'monthly_counts': monthly_qs,
+            'recommendations': recommendations,
+            'today': today,
         })
     
     return render(request, f'dashboard/{user.role}_dashboard.html', context)

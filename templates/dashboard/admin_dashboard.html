@@ -1,12 +1,65 @@
 {% extends 'base.html' %}
 {% block title %}Admin Dashboard{% endblock %}
+{% block extra_css %}
+<style>
+/* Crowd bar chart */
+.bar-wrap{display:flex;align-items:flex-end;gap:2px;height:72px;padding:0 2px}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;cursor:default}
+.bar-fill{width:100%;border-radius:3px 3px 0 0;min-height:3px;transition:all 0.2s}
+.bar-lbl{font-size:0.5rem;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%;text-align:center;margin-top:2px}
+.crowd-none .bar-fill{background:#e2e8f0}
+.crowd-low .bar-fill{background:#059669}
+.crowd-medium .bar-fill{background:#d97706}
+.crowd-high .bar-fill{background:#ea580c}
+.crowd-very_high .bar-fill{background:#dc2626}
+/* Mini calendar */
+.mini-cal{border-collapse:collapse;width:100%;font-size:0.75rem}
+.mini-cal th{padding:4px;text-align:center;font-weight:700;color:#64748b;font-size:0.68rem}
+.mini-cal td{padding:3px;text-align:center}
+.mc-day{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:500;cursor:default}
+.mc-day.past{opacity:0.35}
+.mc-day.today{border:2px solid #2563eb;font-weight:800}
+.mc-crowd-none{background:#f8fafc;color:#94a3b8}
+.mc-crowd-low{background:#d1fae5;color:#065f46}
+.mc-crowd-medium{background:#fef3c7;color:#92400e}
+.mc-crowd-high{background:#fed7aa;color:#c2410c}
+.mc-crowd-very_high{background:#fecaca;color:#991b1b}
+.mc-avail-holiday{background:#fecaca!important;color:#991b1b!important;text-decoration:line-through}
+.mc-avail-busy{outline:2px solid #f59e0b}
+.mc-avail-half_day{outline:2px solid #8b5cf6}
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:0.75rem;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* Trend table */
+.trend-table{width:100%;font-size:0.8rem;border-collapse:collapse}
+.trend-table td,.trend-table th{padding:6px 10px;border-bottom:1px solid #f1f5f9}
+.trend-table th{font-weight:700;color:#64748b;font-size:0.72rem;text-transform:uppercase}
+/* Responsive */
+.dash-two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.dash-two-col{grid-template-columns:1fr}}
+.dash-three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.dash-three-col{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.dash-three-col{grid-template-columns:1fr}}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header">
-  <div class="page-title">Admin Control Center</div>
-  <div class="page-subtitle">System overview and management</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="page-title">Admin Control Center</div>
+      <div class="page-subtitle">{% if today %}{{ today|date:"l, d F Y" }}{% endif %} — System overview and workload analytics</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="{% url 'analytics' %}" class="btn btn-outline btn-sm">📊 Full Analytics</a>
+      <a href="{% url 'reports' %}" class="btn btn-outline btn-sm">📥 Reports</a>
+      <a href="{% url 'admin_availability' %}" class="btn btn-primary btn-sm">📅 Set Availability</a>
+    </div>
+  </div>
 </div>
 
-<div class="stats-grid stagger">
+<!-- ── Overall Stats ──────────────────────────────────────────────────────── -->
+<div class="stats-grid stagger" style="margin-bottom:20px">
   <div class="stat-card"><div class="stat-icon" style="background:#eff6ff">📋</div><div><div class="stat-label">Total Applications</div><div class="stat-value">{{ total_applications }}</div></div></div>
   <div class="stat-card"><div class="stat-icon" style="background:#fef3c7">⏳</div><div><div class="stat-label">Pending</div><div class="stat-value">{{ pending_applications }}</div></div></div>
   <div class="stat-card"><div class="stat-icon" style="background:#ecfdf5">✅</div><div><div class="stat-label">Approved</div><div class="stat-value">{{ approved_applications }}</div></div></div>
@@ -15,19 +68,222 @@
   <div class="stat-card"><div class="stat-icon" style="background:#d1fae5">💰</div><div><div class="stat-label">Total Revenue</div><div class="stat-value" style="font-size:1.3rem">₹{{ total_revenue|floatformat:0 }}</div><div class="stat-sub">Tatkal: ₹{{ tatkal_revenue|floatformat:0 }}</div></div></div>
 </div>
 
-<!-- Quick Links -->
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
-  <a href="{% url 'analytics' %}" class="btn btn-primary">📊 Analytics</a>
-  <a href="{% url 'admin_availability' %}" class="btn btn-outline">📅 Availability Calendar</a>
-  <a href="{% url 'reports' %}" class="btn btn-outline">📥 Reports</a>
-  <a href="{% url 'track_certificate' %}" class="btn btn-outline">🚚 Track Certificate</a>
-  <a href="/admin/users/" class="btn btn-outline">👥 Users</a>
+<!-- ── Today's Daily Statistics ───────────────────────────────────────────── -->
+{% if stats_today %}
+<div class="card" style="margin-bottom:20px;border-left:4px solid #2563eb">
+  <div class="card-header">
+    <div class="card-title">📅 Today's Statistics — {{ today|date:"d M Y" }}</div>
+    <div>
+      {% if stats_today.total == 0 %}
+      <span style="padding:4px 10px;background:#f0fdf4;color:#059669;border-radius:8px;font-size:0.78rem;font-weight:700">😊 No applications today</span>
+      {% elif stats_today.total <= 20 %}
+      <span style="padding:4px 10px;background:#d1fae5;color:#065f46;border-radius:8px;font-size:0.78rem;font-weight:700">🟢 Low Crowd</span>
+      {% elif stats_today.total <= 50 %}
+      <span style="padding:4px 10px;background:#fef3c7;color:#92400e;border-radius:8px;font-size:0.78rem;font-weight:700">🟡 Medium Crowd</span>
+      {% elif stats_today.total <= 100 %}
+      <span style="padding:4px 10px;background:#fed7aa;color:#c2410c;border-radius:8px;font-size:0.78rem;font-weight:700">🟠 High Crowd</span>
+      {% else %}
+      <span style="padding:4px 10px;background:#fecaca;color:#991b1b;border-radius:8px;font-size:0.78rem;font-weight:700">🔴 Very High Crowd</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="dash-three-col">
+      <div style="text-align:center;padding:16px;background:#eff6ff;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#2563eb">{{ stats_today.total }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Total Applications</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#fffbeb;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#d97706">{{ stats_today.pending }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Pending Review</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#ecfdf5;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#059669">{{ stats_today.approved }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Approved Today</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#fef2f2;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#dc2626">{{ stats_today.rejected }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Rejected Today</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#f0fdf4;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#16a34a">{{ stats_today.delivered }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Delivered Today</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:#f8fafc;border-radius:10px">
+        <div style="font-size:2rem;font-weight:800;color:#475569">{{ avg_per_day }}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">Avg / Day (30d)</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── 30-Day Crowd Analysis ───────────────────────────────────────────────── -->
+{% if days_list %}
+<div class="dash-two-col" style="margin-bottom:20px">
+
+<!-- Bar chart -->
+<div class="card">
+  <div class="card-header"><div class="card-title">📊 30-Day Application Trend</div></div>
+  <div class="card-body">
+    <div class="bar-wrap">
+      {% for day in days_list %}
+      <div class="bar-col crowd-{{ day.crowd }}" title="{{ day.date|date:'d M' }}: {{ day.count }} applications">
+        <div style="font-size:0.55rem;color:#64748b;min-height:10px">{% if day.count %}{{ day.count }}{% endif %}</div>
+        <div class="bar-fill" style="height:{% if day.count == 0 %}3px{% else %}{{ day.count|floatformat:0 }}px{% endif %};max-height:56px"></div>
+        <div class="bar-lbl">{{ day.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="legend" style="margin-top:14px">
+      <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Low (≤20)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>Medium (21–50)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ea580c"></div>High (51–100)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#dc2626"></div>Very High (100+)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Crowd summary -->
+<div class="card">
+  <div class="card-header"><div class="card-title">🔍 Crowd Analysis</div></div>
+  <div class="card-body">
+    {% if busiest %}
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#fff7ed;border-radius:8px;margin-bottom:10px">
+      <div style="font-size:1.5rem">🔥</div>
+      <div>
+        <div style="font-size:0.72rem;color:#94a3b8;font-weight:700">BUSIEST DAY (30 days)</div>
+        <div style="font-weight:700">{{ busiest.date|date:"l, d M" }}</div>
+        <div style="font-size:0.78rem;color:#ea580c;font-weight:600">{{ busiest.count }} applications</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if least_busy %}
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f0fdf4;border-radius:8px;margin-bottom:10px">
+      <div style="font-size:1.5rem">😊</div>
+      <div>
+        <div style="font-size:0.72rem;color:#94a3b8;font-weight:700">QUIETEST DAY (30 days)</div>
+        <div style="font-weight:700">{{ least_busy.date|date:"l, d M" }}</div>
+        <div style="font-size:0.78rem;color:#059669;font-weight:600">{{ least_busy.count }} applications</div>
+      </div>
+    </div>
+    {% endif %}
+    <div style="padding:12px;background:#f8fafc;border-radius:8px;display:flex;justify-content:space-between">
+      <div style="font-size:0.82rem">Average per day</div>
+      <div style="font-weight:700">{{ avg_per_day }}</div>
+    </div>
+    <a href="{% url 'analytics' %}" class="btn btn-outline btn-sm" style="width:100%;text-align:center;margin-top:12px">📊 Full Analytics →</a>
+  </div>
+</div>
+</div>
+
+<!-- ── Weekly + Monthly Trend ─────────────────────────────────────────────── -->
+<div class="dash-two-col" style="margin-bottom:20px">
+<div class="card">
+  <div class="card-header"><div class="card-title">📆 Weekly Trend</div></div>
+  <div class="card-body" style="padding:0">
+    <table class="trend-table">
+      <thead><tr><th>Week of</th><th>Applications</th><th>Level</th></tr></thead>
+      <tbody>
+      {% for w in weekly_counts %}
+      {% with cnt=w.count %}
+      <tr>
+        <td>{{ w.week|date:"d M Y" }}</td>
+        <td style="font-weight:700">{{ cnt }}</td>
+        <td>
+          <span style="padding:2px 8px;border-radius:8px;font-size:0.72rem;font-weight:700;color:white;background:{% if cnt <= 20 %}#059669{% elif cnt <= 50 %}#d97706{% elif cnt <= 100 %}#ea580c{% else %}#dc2626{% endif %}">
+            {% if cnt <= 20 %}Low{% elif cnt <= 50 %}Medium{% elif cnt <= 100 %}High{% else %}Very High{% endif %}
+          </span>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;padding:16px;color:#94a3b8">No data</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <div class="card">
+  <div class="card-header"><div class="card-title">🗓 Monthly Trend</div></div>
+  <div class="card-body" style="padding:0">
+    <table class="trend-table">
+      <thead><tr><th>Month</th><th>Applications</th><th>Level</th></tr></thead>
+      <tbody>
+      {% for m in monthly_counts %}
+      {% with cnt=m.count %}
+      <tr>
+        <td>{{ m.month|date:"M Y" }}</td>
+        <td style="font-weight:700">{{ cnt }}</td>
+        <td>
+          <span style="padding:2px 8px;border-radius:8px;font-size:0.72rem;font-weight:700;color:white;background:{% if cnt <= 20 %}#059669{% elif cnt <= 50 %}#d97706{% elif cnt <= 100 %}#ea580c{% else %}#dc2626{% endif %}">
+            {% if cnt <= 20 %}Low{% elif cnt <= 50 %}Medium{% elif cnt <= 100 %}High{% else %}Very High{% endif %}
+          </span>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;padding:16px;color:#94a3b8">No data</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+{% endif %}
+
+<!-- ── Recommended Collection Days ────────────────────────────────────────── -->
+{% if recommendations %}
+<div class="card" style="margin-bottom:20px;border:2px solid #059669">
+  <div class="card-header" style="background:#ecfdf5">
+    <div class="card-title" style="color:#065f46">✅ Recommended Student Collection Days</div>
+    <div style="font-size:0.78rem;color:#065f46">Next low-crowd weekdays — share with students</div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      {% for rec in recommendations %}
+      <div style="padding:14px;background:white;border:1px solid #a7f3d0;border-radius:10px;border-left:4px solid #059669">
+        <div style="font-weight:700;color:#065f46;font-size:0.95rem">{{ rec.date|date:"l" }}</div>
+        <div style="font-weight:600;font-size:0.85rem;color:#0d1b3e;margin-top:2px">{{ rec.date|date:"d M Y" }}</div>
+        <div style="font-size:0.75rem;color:#64748b;margin-top:6px">
+          {% if rec.crowd == 0 %}No queue expected{% else %}~{{ rec.crowd }} applications — Low crowd{% endif %}
+          {% if rec.avail_status == 'available' %} · Admin Available{% elif rec.avail_status == 'half_day' %} · Half Day{% endif %}
+        </div>
+        {% if rec.notes %}<div style="font-size:0.72rem;color:#94a3b8;margin-top:3px">{{ rec.notes }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:10px;font-size:0.75rem;color:#94a3b8">Based on workload forecast and admin availability. Weekends excluded.</div>
+    <a href="{% url 'admin_availability' %}" class="btn btn-outline btn-sm" style="margin-top:10px">📅 Manage Availability Calendar →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Reports Quick Download ─────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">📥 Quick Reports</div>
+    <a href="{% url 'reports' %}" class="btn btn-outline btn-sm">All Reports →</a>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      <a href="{% url 'reports' %}?type=applications&period=daily&format=excel" class="btn btn-outline" style="text-align:center;font-size:0.82rem">📊 Today Excel</a>
+      <a href="{% url 'reports' %}?type=applications&period=weekly&format=excel" class="btn btn-outline" style="text-align:center;font-size:0.82rem">📊 Weekly Excel</a>
+      <a href="{% url 'reports' %}?type=applications&period=monthly&format=excel" class="btn btn-outline" style="text-align:center;font-size:0.82rem">📊 Monthly Excel</a>
+      <a href="{% url 'reports' %}?type=delivery&period=monthly&format=excel" class="btn btn-outline" style="text-align:center;font-size:0.82rem">🚚 Delivery Excel</a>
+      <a href="{% url 'reports' %}?type=crowd&period=monthly&format=excel" class="btn btn-outline" style="text-align:center;font-size:0.82rem">📈 Crowd Excel</a>
+      <a href="{% url 'reports' %}?type=applications&period=monthly&format=pdf" class="btn btn-outline" style="text-align:center;font-size:0.82rem">📄 Monthly PDF</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent Applications ────────────────────────────────────────────────── -->
+<div class="card">
   <div class="card-header">
     <div class="card-title">Recent Applications</div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="/admin/users/" class="btn btn-outline btn-sm">👥 Users</a>
       <a href="/staff/applications/" class="btn btn-primary btn-sm">📋 All Apps</a>
     </div>
   </div>
@@ -38,7 +294,7 @@
       <tbody>
       {% for app in recent_apps %}
       <tr>
-        <td><code style="font-family:monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</code></td>
+        <td><a href="/applications/{{ app.application_id }}/" style="font-family:monospace;font-size:0.8rem;background:#f1f5f9;padding:2px 6px;border-radius:4px">#{{ app.get_short_id }}</a></td>
         <td><div style="font-weight:600">{{ app.student.user.get_full_name }}</div><div style="font-size:0.75rem;color:#64748b">{{ app.student.department }}</div></td>
         <td>{{ app.get_certificate_type_display }}</td>
         <td>{% if app.is_tatkal %}<span class="badge badge-tatkal">⚡ TATKAL</span>{% else %}<span class="badge badge-normal">Normal</span>{% endif %}</td>

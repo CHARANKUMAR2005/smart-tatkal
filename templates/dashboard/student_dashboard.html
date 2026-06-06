@@ -35,6 +35,37 @@
   </div>
 </div>
 
+<!-- Appointment Recommendation — shown only when student has approved/generated certs -->
+{% if has_approved and recommendations %}
+<div class="card" style="margin-bottom:20px;border:2px solid #059669;border-left:5px solid #059669">
+  <div class="card-header" style="background:#ecfdf5">
+    <div class="card-title" style="color:#065f46">📅 Recommended Certificate Collection Days</div>
+    <a href="{% url 'track_certificate' %}" class="btn btn-sm btn-outline" style="color:#059669;border-color:#059669;font-size:0.78rem">Track →</a>
+  </div>
+  <div class="card-body">
+    <div style="font-size:0.82rem;color:#64748b;margin-bottom:12px">
+      Your certificate is ready. Based on admin availability and expected crowd, these are the best days to visit:
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+      {% for rec in recommendations %}
+      <div style="padding:12px;border:1px solid #a7f3d0;border-radius:10px;background:white;border-left:4px solid #059669">
+        <div style="font-weight:700;color:#065f46">{{ rec.date|date:"l" }}</div>
+        <div style="font-size:0.9rem;font-weight:600;margin-top:2px">{{ rec.date|date:"d M Y" }}</div>
+        <div style="font-size:0.72rem;color:#64748b;margin-top:6px">
+          {% if rec.crowd == 0 %}No queue expected{% else %}~{{ rec.crowd }} applications — Low crowd{% endif %}
+          {% if rec.avail_status == 'available' %} · Admin Available{% endif %}
+        </div>
+        {% if rec.notes %}<div style="font-size:0.7rem;color:#94a3b8;margin-top:2px">{{ rec.notes }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:10px;padding:10px;background:#f0fdf4;border-radius:8px;font-size:0.78rem;color:#065f46">
+      💡 Visiting on a low-crowd day means shorter wait time and faster service.
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% if notifications %}
 <div class="card" style="margin-bottom:20px;border-left:4px solid #2563eb">
   <div class="card-header">

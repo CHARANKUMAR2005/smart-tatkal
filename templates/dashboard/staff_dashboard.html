@@ -5,6 +5,9 @@
   <div class="page-title">Staff Dashboard</div>
   <div class="page-subtitle">Manage and process student certificate applications</div>
   <div class="page-actions">
+    <a href="{% url 'analytics' %}" class="btn btn-outline">📊 Analytics</a>
+    <a href="{% url 'admin_availability' %}" class="btn btn-outline">📅 Calendar</a>
+    <a href="{% url 'reports' %}" class="btn btn-outline">📥 Reports</a>
     <a href="/staff/applications/?sort=tatkal" class="btn btn-gold">⚡ Tatkal Queue ({{ tatkal_pending }})</a>
     <a href="/staff/applications/" class="btn btn-primary">📋 All Applications</a>
   </div>
