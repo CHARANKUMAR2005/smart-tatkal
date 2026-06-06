@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% block title %}Book Your Slot{% endblock %}
+{% block extra_css %}
+<style>
+/* ── Date Strip ─────────────────────── */
+.date-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-bottom:24px;scrollbar-width:none}
+.date-strip::-webkit-scrollbar{display:none}
+.date-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;border-radius:12px;border:2px solid var(--gray-200);background:white;cursor:pointer;transition:all 0.2s;text-decoration:none;min-width:80px}
+.date-chip:hover{border-color:var(--blue-light);box-shadow:var(--shadow-sm)}
+.date-chip.selected{border-color:var(--blue);background:var(--blue);color:white}
+.date-chip.selected .chip-crowd{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.2)}
+.chip-day{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-400)}
+.chip-num{font-size:1.5rem;font-weight:800;line-height:1;color:var(--gray-800)}
+.chip-month{font-size:0.7rem;color:var(--gray-400);font-weight:600}
+.chip-crowd{font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px;text-transform:uppercase;letter-spacing:0.05em}
+.date-chip.selected .chip-day,.date-chip.selected .chip-num,.date-chip.selected .chip-month{color:white}
+.today-marker{font-size:0.6rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:-2px}
+/* ── Slot Cards ─────────────────────── */
+.slot-list{display:flex;flex-direction:column;gap:12px}
+.slot-card{background:white;border:1.5px solid var(--gray-200);border-radius:14px;padding:18px 20px;transition:all 0.2s;position:relative}
+.slot-card:hover:not(.slot-past){box-shadow:var(--shadow);border-color:var(--blue-light)}
+.slot-card.slot-past{opacity:0.55}
+.slot-card.slot-active{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,0.12)}
+.slot-card.slot-booked-mine{border-color:#059669;background:#f0fdf4}
+.slot-card.slot-full:not(.slot-booked-mine){opacity:0.7}
+.slot-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.slot-time{font-size:1rem;font-weight:800;color:var(--gray-800);min-width:170px}
+.slot-meta{display:flex;align-items:center;gap:14px;flex:1;flex-wrap:wrap}
+.slot-stat{font-size:0.78rem;color:var(--gray-600);display:flex;align-items:center;gap:4px}
+.slot-stat strong{color:var(--gray-800);font-weight:700}
+.slot-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:0.74rem;font-weight:700;white-space:nowrap}
+.badge-available{background:#d1fae5;color:#065f46}
+.badge-full{background:#fee2e2;color:#991b1b}
+.badge-past{background:#f1f5f9;color:#94a3b8}
+.badge-active{background:#dbeafe;color:#1d4ed8}
+.badge-mine{background:#d1fae5;color:#065f46;border:1.5px solid #059669}
+.slot-progress{margin-top:12px}
+.slot-progress-track{height:8px;background:var(--gray-100);border-radius:99px;overflow:hidden}
+.slot-progress-fill{height:100%;border-radius:99px;transition:width 0.5s ease}
+.fill-low{background:linear-gradient(90deg,#34d399,#059669)}
+.fill-medium{background:linear-gradient(90deg,#fbbf24,#d97706)}
+.fill-high{background:linear-gradient(90deg,#f87171,#dc2626)}
+.fill-full{background:linear-gradient(90deg,#dc2626,#991b1b)}
+.slot-progress-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:0.68rem;color:var(--gray-400);font-weight:600}
+/* ── Layout ─────────────────────────── */
+.slot-layout{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+/* ── Queue Panel ────────────────────── */
+.queue-panel{background:white;border-radius:var(--radius);border:1.5px solid var(--blue-light);box-shadow:0 0 0 3px rgba(37,99,235,0.07);overflow:hidden;position:sticky;top:80px}
+.queue-header{background:linear-gradient(135deg,var(--navy),var(--blue));color:white;padding:16px 20px}
+.queue-header-title{font-weight:800;font-size:1rem}
+.queue-header-sub{font-size:0.72rem;opacity:0.75;margin-top:2px}
+.queue-body{padding:20px}
+.queue-stat{margin-bottom:18px}
+.queue-stat-label{font-size:0.7rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.06em}
+.queue-stat-value{font-size:2rem;font-weight:800;color:var(--gray-800);line-height:1.1}
+.queue-stat-sub{font-size:0.72rem;color:var(--gray-400);margin-top:2px}
+.queue-divider{height:1px;background:var(--gray-100);margin:16px 0}
+.crowd-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:0.82rem;font-weight:700}
+/* ── AI Rec Panel ───────────────────── */
+.ai-panel{background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1.5px solid #bae6fd;border-radius:var(--radius);padding:18px;margin-top:16px}
+.ai-panel-title{font-weight:800;font-size:0.9rem;color:#0369a1;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ai-row{font-size:0.8rem;color:#0c4a6e;margin-bottom:8px;display:flex;gap:6px;align-items:flex-start}
+.ai-row strong{color:#0369a1}
+/* ── Crowd classes ──────────────────── */
+.crowd-none{background:#f1f5f9;color:#475569}
+.crowd-low{background:#d1fae5;color:#065f46}
+.crowd-medium{background:#fef3c7;color:#92400e}
+.crowd-high{background:#fee2e2;color:#991b1b}
+/* ── Hero banner ────────────────────── */
+.slot-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);color:white;border-radius:var(--radius-lg);padding:22px 28px;margin-bottom:24px;display:flex;align-items:center;gap:16px}
+.slot-hero-icon{font-size:2.5rem;flex-shrink:0}
+.slot-hero-title{font-size:1.3rem;font-weight:800}
+.slot-hero-sub{font-size:0.85rem;opacity:0.8;margin-top:2px}
+/* ── My booking banner ──────────────── */
+.my-booking-bar{background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+/* ── Responsive ─────────────────────── */
+@media(max-width:900px){
+  .slot-layout{grid-template-columns:1fr}
+  .queue-panel{position:static}
+}
+@media(max-width:600px){
+  .slot-time{min-width:auto;font-size:0.9rem}
+  .slot-card{padding:14px}
+  .slot-hero{padding:16px 18px}
+  .slot-hero-title{font-size:1.1rem}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<div class="slot-hero">
+  <div class="slot-hero-icon">🎫</div>
+  <div>
+    <div class="slot-hero-title">Book Your Slot — Like a Movie Ticket!</div>
+    <div class="slot-hero-sub">Reserve your time, skip the wait. Choose a date and slot to get your token number instantly.</div>
+  </div>
+</div>
+
+<!-- Date Selector -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">📅 Select Date</div>
+    <div style="font-size:0.78rem;color:var(--gray-400)">Next 7 working days</div>
+  </div>
+  <div class="card-body" style="padding:16px 24px">
+    <div class="date-strip">
+      {% for d in days_data %}
+      <a href="/book-slot/?date={{ d.date|date:'Y-m-d' }}"
+         class="date-chip {% if d.is_selected %}selected{% endif %}">
+        {% if d.is_today %}<div class="today-marker">Today</div>{% endif %}
+        <div class="chip-day">{{ d.day_name }}</div>
+        <div class="chip-num">{{ d.day_num }}</div>
+        <div class="chip-month">{{ d.month }}</div>
+        <div class="chip-crowd {{ d.crowd_cls }}">{{ d.crowd_label }}</div>
+      </a>
+      {% endfor %}
+    </div>
+    <!-- Legend -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+      <span style="font-size:0.72rem;color:var(--gray-400)">Crowd:</span>
+      <span class="chip-crowd crowd-none" style="padding:2px 8px;border-radius:10px;font-size:0.68rem">Open</span>
+      <span class="chip-crowd crowd-low" style="padding:2px 8px;border-radius:10px;font-size:0.68rem">Low &lt;30%</span>
+      <span class="chip-crowd crowd-medium" style="padding:2px 8px;border-radius:10px;font-size:0.68rem">Medium 30–60%</span>
+      <span class="chip-crowd crowd-high" style="padding:2px 8px;border-radius:10px;font-size:0.68rem">High &gt;60%</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Layout: Slots + Sidebar -->
+<div class="slot-layout">
+
+  <!-- Left: Time Slots -->
+  <div>
+    <!-- Existing booking notice -->
+    {% if user_booking %}
+    <div class="my-booking-bar">
+      <span style="font-size:1.4rem">🎫</span>
+      <div style="flex:1">
+        <div style="font-weight:700;color:#065f46">You have token <strong>{{ user_booking.token_number }}</strong> for {{ selected_date|date:"d M Y" }}</div>
+        <div style="font-size:0.78rem;color:#059669">{{ user_booking.get_slot_label }} · Status: {{ user_booking.get_status_display }}</div>
+      </div>
+      <a href="/book-slot/cancel/{{ user_booking.id }}/"
+         onclick="return confirm('Cancel booking {{ user_booking.token_number }}?')"
+         class="btn btn-sm btn-danger">Cancel</a>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🕐 Select Time Slot — {{ selected_date|date:"l, d M Y" }}</div>
+        <div style="font-size:0.78rem;color:var(--gray-400)">{{ capacity }} slots per hour</div>
+      </div>
+      <div class="card-body" style="padding:16px">
+        <div class="slot-list">
+          {% for slot in slot_data %}
+          <div class="slot-card
+            {% if slot.is_past %}slot-past{% endif %}
+            {% if slot.is_active %}slot-active{% endif %}
+            {% if slot.is_my_slot %}slot-booked-mine{% endif %}
+            {% if slot.is_full and not slot.is_my_slot %}slot-full{% endif %}">
+
+            {% if slot.is_active %}
+            <div style="font-size:0.68rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">● Live Now</div>
+            {% endif %}
+
+            <div class="slot-row">
+              <div class="slot-time">{{ slot.name }}</div>
+
+              <div class="slot-meta">
+                <div class="slot-stat">
+                  <strong>{{ slot.booked }}/{{ slot.capacity }}</strong> slots taken
+                </div>
+                {% if not slot.is_past %}
+                <div class="slot-stat">
+                  ⏱ ~<strong>{{ slot.avg_wait }}</strong> min wait
+                </div>
+                {% endif %}
+                <div class="slot-stat">
+                  🎫 {{ slot.token_start }}{% if slot.booked > 0 %} → {{ slot.token_end }}{% endif %}
+                </div>
+              </div>
+
+              <!-- Status Badge -->
+              {% if slot.is_my_slot %}
+                <span class="slot-badge badge-mine">✅ My Token: {{ slot.my_token }}</span>
+              {% elif slot.is_past %}
+                <span class="slot-badge badge-past">Closed</span>
+              {% elif slot.is_active %}
+                <span class="slot-badge badge-active">🟢 Active</span>
+              {% elif slot.is_full %}
+                <span class="slot-badge badge-full">Full</span>
+              {% else %}
+                <span class="slot-badge badge-available">Available ({{ slot.remaining }} left)</span>
+              {% endif %}
+
+              <!-- Book Button -->
+              {% if slot.can_book %}
+              <form method="post" action="/book-slot/book/" style="margin-left:4px">
+                {% csrf_token %}
+                <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                <input type="hidden" name="time_slot" value="{{ slot.key }}">
+                <button type="submit" class="btn btn-primary btn-sm">Book →</button>
+              </form>
+              {% endif %}
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="slot-progress">
+              <div class="slot-progress-track">
+                <div class="slot-progress-fill
+                  {% if slot.crowd_pct >= 100 %}fill-full
+                  {% elif slot.crowd_pct >= 60 %}fill-high
+                  {% elif slot.crowd_pct >= 30 %}fill-medium
+                  {% else %}fill-low{% endif %}"
+                  style="width:{{ slot.crowd_pct|default:0 }}%"></div>
+              </div>
+              <div class="slot-progress-labels">
+                <span>{{ slot.crowd_pct }}% filled</span>
+                <span>{{ slot.remaining }} remaining</span>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div><!-- /slots column -->
+
+  <!-- Right: Queue Status + AI Rec -->
+  <div>
+    <!-- Live Queue Status -->
+    <div class="queue-panel">
+      <div class="queue-header">
+        <div class="queue-header-title">📡 Live Queue Status</div>
+        <div class="queue-header-sub" id="queueRefreshLabel">
+          {% if selected_date == today %}Auto-refreshing every 30s{% else %}Showing data for {{ selected_date|date:"d M Y" }}{% endif %}
+        </div>
+      </div>
+      <div class="queue-body">
+        {% if queue_status %}
+          <div class="queue-stat">
+            <div class="queue-stat-label">Current Token</div>
+            <div class="queue-stat-value" id="currentToken">{{ queue_status.current_token }}</div>
+            <div class="queue-stat-sub">{{ queue_status.slot_name }}</div>
+          </div>
+          <div class="queue-divider"></div>
+          {% if queue_status.my_token %}
+          <div class="queue-stat">
+            <div class="queue-stat-label">Your Token</div>
+            <div class="queue-stat-value" style="font-size:1.5rem;color:#059669">{{ queue_status.my_token }}</div>
+            <div class="queue-stat-sub">
+              {% if queue_status.tokens_ahead > 0 %}
+                {{ queue_status.tokens_ahead }} token{{ queue_status.tokens_ahead|pluralize }} ahead of you
+              {% else %}
+                You're next! 🎉
+              {% endif %}
+            </div>
+          </div>
+          <div class="queue-stat">
+            <div class="queue-stat-label">Estimated Wait</div>
+            <div class="queue-stat-value" style="font-size:1.5rem">{{ queue_status.est_wait }} min</div>
+          </div>
+          <div class="queue-divider"></div>
+          {% endif %}
+          <div class="queue-stat">
+            <div class="queue-stat-label">Crowd Level</div>
+            <span class="crowd-pill {{ queue_status.crowd_cls }}" id="crowdBadge">
+              {% if queue_status.crowd_label == 'Low' %}🟢{% elif queue_status.crowd_label == 'Medium' %}🟡{% else %}🔴{% endif %}
+              {{ queue_status.crowd_label }}
+            </span>
+          </div>
+          <div class="queue-stat" style="margin-top:12px">
+            <div class="queue-stat-label">Slot Occupancy</div>
+            <div style="margin-top:6px">
+              <div class="slot-progress-track">
+                <div class="slot-progress-fill
+                  {% if queue_status.pct >= 60 %}fill-high{% elif queue_status.pct >= 30 %}fill-medium{% else %}fill-low{% endif %}"
+                  id="crowdBar" style="width:{{ queue_status.pct }}%"></div>
+              </div>
+              <div style="font-size:0.72rem;color:var(--gray-400);margin-top:4px">
+                {{ queue_status.total_in_slot }}/{{ capacity }} in current slot
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div style="text-align:center;padding:20px 0;color:var(--gray-400)">
+            <div style="font-size:2.5rem;margin-bottom:8px">
+              {% if selected_date == today %}🌙{% else %}📅{% endif %}
+            </div>
+            <div style="font-weight:600;font-size:0.88rem">
+              {% if selected_date == today %}
+                No active slot right now<br>
+                <span style="font-size:0.78rem;font-weight:400">Office hours: 9 AM – 5 PM</span>
+              {% else %}
+                Select today's date to<br>see live queue status
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- AI Recommendation -->
+    <div class="ai-panel">
+      <div class="ai-panel-title">🤖 AI Recommendation</div>
+      {% if ai_rec.has_data %}
+        <div class="ai-row">✅ <span>Best time: <strong>{{ ai_rec.best_slot }}</strong> — historically lowest queue</span></div>
+        <div class="ai-row">⚠️ <span>Busiest slot: <strong>{{ ai_rec.worst_slot }}</strong> — expect longer wait</span></div>
+        <div class="ai-row">📅 <span>Best day to visit: <strong>{{ ai_rec.best_day }}</strong></span></div>
+        <div class="ai-row">🚫 <span>Avoid: <strong>{{ ai_rec.worst_day }}</strong>s — typically crowded</span></div>
+      {% else %}
+        <div class="ai-row">📊 <span>Not enough historical data yet. Check back after a few days of activity.</span></div>
+        <div class="ai-row">💡 <span>Generally, <strong>mid-week mid-morning</strong> slots (Tue–Thu, 10–12 AM) have shorter queues.</span></div>
+      {% endif %}
+      <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.7);border-radius:8px;font-size:0.74rem;color:#0c4a6e">
+        💡 Based on booking patterns from the past 30 days.
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+      <a href="/track/" class="btn btn-outline btn-sm" style="justify-content:center">🚚 Track My Certificate</a>
+      <a href="/apply/" class="btn btn-outline btn-sm" style="justify-content:center">⚡ Apply for Certificate</a>
+    </div>
+  </div><!-- /sidebar -->
+
+</div><!-- /slot-layout -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if selected_date == today and queue_status %}
+// Auto-refresh queue status every 30 seconds
+function refreshQueueStatus() {
+  fetch('/book-slot/queue-status/')
+    .then(r => r.json())
+    .then(data => {
+      if (data.active) {
+        const tok = document.getElementById('currentToken');
+        if (tok) tok.textContent = data.current_token;
+        const badge = document.getElementById('crowdBadge');
+        if (badge) {
+          const icon = data.crowd === 'Low' ? '🟢' : (data.crowd === 'Medium' ? '🟡' : '🔴');
+          badge.textContent = icon + ' ' + data.crowd;
+        }
+        const bar = document.getElementById('crowdBar');
+        if (bar) bar.style.width = data.crowd_pct + '%';
+      }
+    })
+    .catch(() => {});
+}
+setInterval(refreshQueueStatus, 30000);
+{% endif %}
+</script>
+{% endblock %}

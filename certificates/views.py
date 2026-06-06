@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.core.paginator import Paginator
 from .models import (Application, Certificate, ApplicationStatusHistory, CERTIFICATE_TYPES,
-                     DeliveryDetails, CourierTracking, AdminAvailability)
+                     DeliveryDetails, CourierTracking, AdminAvailability, SlotBooking)
 from .utils import generate_verification_code, generate_qr_code, generate_certificate_pdf
 from .emails import send_status_email, send_test_email
 from accounts.models import StudentProfile, Institution, College
@@ -840,3 +840,314 @@ def _generate_report(request, report_type, period, start_date, end_date, fmt):
     resp = HttpResponse(buf.read(), content_type='application/pdf')
     resp['Content-Disposition'] = f'attachment; filename="{filename_base}.pdf"'
     return resp
+
+
+# ─── Slot Booking / Crowd Page ───────────────────────────────────────────────
+
+@login_required
+def slot_booking_view(request):
+    from datetime import date as date_cls, timedelta
+    from collections import defaultdict
+
+    today = date_cls.today()
+    now = timezone.localtime(timezone.now())
+
+    # Build next 7 working days starting from today
+    working_days = []
+    d = today
+    while len(working_days) < 7:
+        if d.weekday() < 5:
+            working_days.append(d)
+        d += timedelta(days=1)
+
+    # Resolve selected date
+    selected_date_str = request.GET.get('date', working_days[0].isoformat())
+    try:
+        selected_date = date_cls.fromisoformat(selected_date_str)
+    except (ValueError, TypeError):
+        selected_date = working_days[0]
+    if selected_date not in working_days:
+        selected_date = working_days[0]
+
+    total_daily_capacity = len(SlotBooking.TIME_SLOTS) * SlotBooking.SLOT_CAPACITY  # 140
+
+    # Date strip data
+    days_data = []
+    for wd in working_days:
+        total_booked = SlotBooking.objects.filter(
+            date=wd, status__in=['booked', 'completed']
+        ).count()
+        pct = total_booked / total_daily_capacity if total_daily_capacity else 0
+        if pct == 0:
+            crowd_label, crowd_cls = 'Open', 'crowd-none'
+        elif pct < 0.3:
+            crowd_label, crowd_cls = 'Low', 'crowd-low'
+        elif pct < 0.6:
+            crowd_label, crowd_cls = 'Medium', 'crowd-medium'
+        else:
+            crowd_label, crowd_cls = 'High', 'crowd-high'
+        days_data.append({
+            'date': wd,
+            'day_name': wd.strftime('%a'),
+            'day_num': wd.strftime('%d'),
+            'month': wd.strftime('%b'),
+            'total_booked': total_booked,
+            'pct': round(pct * 100),
+            'crowd_label': crowd_label,
+            'crowd_cls': crowd_cls,
+            'is_today': wd == today,
+            'is_selected': wd == selected_date,
+        })
+
+    # User's active booking for selected date
+    user_booking = SlotBooking.objects.filter(
+        user=request.user, date=selected_date, status__in=['booked', 'completed']
+    ).first()
+
+    # Time slot data for selected date
+    slot_data = []
+    for slot_key, slot_name in SlotBooking.TIME_SLOTS:
+        slot_hour = int(slot_key.split(':')[0])
+        is_past = (selected_date == today and now.hour > slot_hour) or (selected_date < today)
+        is_active = selected_date == today and now.hour == slot_hour
+
+        booked_count = SlotBooking.objects.filter(
+            date=selected_date, time_slot=slot_key, status__in=['booked', 'completed']
+        ).count()
+        remaining = SlotBooking.SLOT_CAPACITY - booked_count
+        prefix = SlotBooking.SLOT_PREFIXES.get(slot_key, 'X')
+
+        is_my_slot = user_booking and user_booking.time_slot == slot_key
+        can_book = (not (booked_count >= SlotBooking.SLOT_CAPACITY)
+                    and not is_past
+                    and user_booking is None)
+
+        slot_data.append({
+            'key': slot_key,
+            'name': slot_name,
+            'hour': slot_hour,
+            'booked': booked_count,
+            'capacity': SlotBooking.SLOT_CAPACITY,
+            'remaining': max(0, remaining),
+            'is_full': booked_count >= SlotBooking.SLOT_CAPACITY,
+            'is_past': is_past,
+            'is_active': is_active,
+            'crowd_pct': round(booked_count / SlotBooking.SLOT_CAPACITY * 100),
+            'token_start': f"{prefix}-001",
+            'token_end': f"{prefix}-{booked_count:03d}" if booked_count else f"{prefix}-000",
+            'avg_wait': booked_count * 3,
+            'is_my_slot': is_my_slot,
+            'my_token': user_booking.token_number if is_my_slot else None,
+            'can_book': can_book,
+        })
+
+    # Live queue status (today only)
+    queue_status = None
+    if selected_date == today:
+        active_slot_key = None
+        for slot_key, _ in SlotBooking.TIME_SLOTS:
+            if now.hour == int(slot_key.split(':')[0]):
+                active_slot_key = slot_key
+                break
+
+        if active_slot_key:
+            slot_hour = int(active_slot_key.split(':')[0])
+            minutes_elapsed = (now.hour - slot_hour) * 60 + now.minute
+            current_position = min(max(1, minutes_elapsed // 3), SlotBooking.SLOT_CAPACITY)
+            prefix = SlotBooking.SLOT_PREFIXES.get(active_slot_key, 'X')
+            current_token = f"{prefix}-{current_position:03d}"
+
+            total_in_slot = SlotBooking.objects.filter(
+                date=today, time_slot=active_slot_key, status__in=['booked', 'completed']
+            ).count()
+            today_total = SlotBooking.objects.filter(date=today, status__in=['booked', 'completed']).count()
+            pct = round(today_total / total_daily_capacity * 100) if total_daily_capacity else 0
+            crowd = ('Low', 'crowd-low') if pct < 30 else (('Medium', 'crowd-medium') if pct < 60 else ('High', 'crowd-high'))
+
+            tokens_ahead, est_wait, my_token = 0, 0, None
+            if user_booking and user_booking.time_slot == active_slot_key:
+                my_token = user_booking.token_number
+                try:
+                    my_num = int(my_token.split('-')[1])
+                    tokens_ahead = max(0, my_num - current_position)
+                    est_wait = tokens_ahead * 3
+                except (IndexError, ValueError):
+                    pass
+
+            queue_status = {
+                'current_token': current_token,
+                'slot_name': dict(SlotBooking.TIME_SLOTS).get(active_slot_key, active_slot_key),
+                'tokens_ahead': tokens_ahead,
+                'est_wait': est_wait,
+                'crowd_label': crowd[0],
+                'crowd_cls': crowd[1],
+                'total_in_slot': total_in_slot,
+                'pct': pct,
+                'my_token': my_token,
+            }
+
+    # AI recommendation from past 30 days
+    thirty_ago = today - timedelta(days=30)
+
+    # Best time slot
+    slot_counts = {}
+    for slot_key, _ in SlotBooking.TIME_SLOTS:
+        slot_counts[slot_key] = SlotBooking.objects.filter(
+            date__gte=thirty_ago, time_slot=slot_key, status__in=['booked', 'completed']
+        ).count()
+
+    # Day-of-week counts
+    dow_counts = defaultdict(int)
+    for b in SlotBooking.objects.filter(date__gte=thirty_ago, status__in=['booked', 'completed']).values('date'):
+        dow_counts[b['date'].weekday()] += 1
+
+    slot_labels = dict(SlotBooking.TIME_SLOTS)
+    best_slot_key = min(slot_counts, key=slot_counts.get) if slot_counts else '12:00'
+    worst_slot_key = max(slot_counts, key=slot_counts.get) if slot_counts else '09:00'
+    dow_names = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday'}
+    best_day = dow_names.get(min(dow_counts, key=dow_counts.get), 'Wednesday') if dow_counts else 'Wednesday'
+    worst_day = dow_names.get(max(dow_counts, key=dow_counts.get), 'Monday') if dow_counts else 'Monday'
+
+    ai_rec = {
+        'best_slot': slot_labels.get(best_slot_key, best_slot_key),
+        'worst_slot': slot_labels.get(worst_slot_key, worst_slot_key),
+        'best_day': best_day,
+        'worst_day': worst_day,
+        'has_data': any(v > 0 for v in slot_counts.values()),
+    }
+
+    return render(request, 'certificates/slot_booking.html', {
+        'days_data': days_data,
+        'selected_date': selected_date,
+        'slot_data': slot_data,
+        'queue_status': queue_status,
+        'ai_rec': ai_rec,
+        'user_booking': user_booking,
+        'today': today,
+        'capacity': SlotBooking.SLOT_CAPACITY,
+    })
+
+
+@login_required
+def book_slot_view(request):
+    if request.method != 'POST':
+        return redirect('slot_booking')
+
+    from datetime import date as date_cls
+
+    date_str = request.POST.get('date', '')
+    time_slot = request.POST.get('time_slot', '')
+    today = date_cls.today()
+    now = timezone.localtime(timezone.now())
+
+    try:
+        booking_date = date_cls.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        messages.error(request, 'Invalid date.')
+        return redirect('slot_booking')
+
+    if booking_date < today:
+        messages.error(request, 'Cannot book a past date.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    if booking_date.weekday() >= 5:
+        messages.error(request, 'Bookings only available Monday to Friday.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    valid_slots = dict(SlotBooking.TIME_SLOTS)
+    if time_slot not in valid_slots:
+        messages.error(request, 'Invalid time slot.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    slot_hour = int(time_slot.split(':')[0])
+    if booking_date == today and now.hour >= slot_hour + 1:
+        messages.error(request, 'This time slot has already passed for today.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    existing = SlotBooking.objects.filter(
+        user=request.user, date=booking_date, status__in=['booked', 'completed']
+    ).first()
+    if existing:
+        messages.warning(request, f'You already have token {existing.token_number} for this date.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    booked_count = SlotBooking.objects.filter(
+        date=booking_date, time_slot=time_slot, status__in=['booked', 'completed']
+    ).count()
+    if booked_count >= SlotBooking.SLOT_CAPACITY:
+        messages.error(request, 'This slot is full. Please select another slot.')
+        return redirect(f'/book-slot/?date={date_str}')
+
+    prefix = SlotBooking.SLOT_PREFIXES.get(time_slot, 'X')
+    token_number = f"{prefix}-{(booked_count + 1):03d}"
+
+    SlotBooking.objects.create(
+        user=request.user,
+        date=booking_date,
+        time_slot=time_slot,
+        token_number=token_number,
+        status='booked',
+    )
+
+    Notification.objects.create(
+        user=request.user,
+        title='Slot Booked!',
+        message=f'Token {token_number} for {booking_date.strftime("%d %b %Y")} at {valid_slots[time_slot]}.',
+        type='success',
+    )
+
+    messages.success(request, f'Booked! Your token is {token_number} for {valid_slots[time_slot]} on {booking_date.strftime("%d %b %Y")}.')
+    return redirect(f'/book-slot/?date={date_str}')
+
+
+@login_required
+def cancel_slot_view(request, booking_id):
+    from datetime import date as date_cls
+    booking = get_object_or_404(SlotBooking, id=booking_id, user=request.user)
+    date_str = booking.date.isoformat()
+    if booking.date < date_cls.today():
+        messages.error(request, 'Cannot cancel a past booking.')
+    elif booking.status == 'cancelled':
+        messages.warning(request, 'Booking is already cancelled.')
+    else:
+        booking.status = 'cancelled'
+        booking.save()
+        messages.success(request, f'Booking {booking.token_number} cancelled.')
+    return redirect(f'/book-slot/?date={date_str}')
+
+
+def queue_status_api(request):
+    from datetime import date as date_cls
+    today = date_cls.today()
+    now = timezone.localtime(timezone.now())
+
+    active_slot_key = None
+    for slot_key, _ in SlotBooking.TIME_SLOTS:
+        if now.hour == int(slot_key.split(':')[0]):
+            active_slot_key = slot_key
+            break
+
+    if not active_slot_key:
+        return JsonResponse({'active': False, 'message': 'No active slot right now'})
+
+    slot_hour = int(active_slot_key.split(':')[0])
+    minutes_elapsed = (now.hour - slot_hour) * 60 + now.minute
+    current_position = min(max(1, minutes_elapsed // 3), SlotBooking.SLOT_CAPACITY)
+    prefix = SlotBooking.SLOT_PREFIXES.get(active_slot_key, 'X')
+
+    total_in_slot = SlotBooking.objects.filter(
+        date=today, time_slot=active_slot_key, status__in=['booked', 'completed']
+    ).count()
+    today_total = SlotBooking.objects.filter(date=today, status__in=['booked', 'completed']).count()
+    total_capacity = len(SlotBooking.TIME_SLOTS) * SlotBooking.SLOT_CAPACITY
+    pct = round(today_total / total_capacity * 100) if total_capacity else 0
+    crowd = 'Low' if pct < 30 else ('Medium' if pct < 60 else 'High')
+
+    return JsonResponse({
+        'active': True,
+        'current_token': f"{prefix}-{current_position:03d}",
+        'total_in_slot': total_in_slot,
+        'crowd': crowd,
+        'crowd_pct': pct,
+        'slot_name': dict(SlotBooking.TIME_SLOTS).get(active_slot_key, ''),
+    })

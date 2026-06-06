@@ -17,4 +17,9 @@ urlpatterns = [
     path('admin/analytics/', views.analytics_view, name='analytics'),
     path('admin/availability/', views.admin_availability_view, name='admin_availability'),
     path('admin/reports/', views.reports_view, name='reports'),
+    # Slot booking / crowd page
+    path('book-slot/', views.slot_booking_view, name='slot_booking'),
+    path('book-slot/book/', views.book_slot_view, name='book_slot'),
+    path('book-slot/cancel/<int:booking_id>/', views.cancel_slot_view, name='cancel_slot'),
+    path('book-slot/queue-status/', views.queue_status_api, name='queue_status_api'),
 ]

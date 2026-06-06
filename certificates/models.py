@@ -143,3 +143,44 @@ class AdminAvailability(models.Model):
 
     def __str__(self):
         return f"{self.date} – {self.get_status_display()}"
+
+
+class SlotBooking(models.Model):
+    TIME_SLOTS = [
+        ('09:00', '9:00 AM – 10:00 AM'),
+        ('10:00', '10:00 AM – 11:00 AM'),
+        ('11:00', '11:00 AM – 12:00 PM'),
+        ('12:00', '12:00 PM – 1:00 PM'),
+        ('14:00', '2:00 PM – 3:00 PM'),
+        ('15:00', '3:00 PM – 4:00 PM'),
+        ('16:00', '4:00 PM – 5:00 PM'),
+    ]
+    SLOT_CAPACITY = 20
+    SLOT_PREFIXES = {
+        '09:00': 'A', '10:00': 'B', '11:00': 'C', '12:00': 'D',
+        '14:00': 'E', '15:00': 'F', '16:00': 'G',
+    }
+    STATUS_CHOICES = [
+        ('booked', 'Booked'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='slot_bookings')
+    application = models.ForeignKey('Application', on_delete=models.SET_NULL, null=True, blank=True, related_name='slot_bookings')
+    date = models.DateField()
+    time_slot = models.CharField(max_length=5, choices=TIME_SLOTS)
+    token_number = models.CharField(max_length=10)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='booked')
+    booked_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['date', 'time_slot', 'booked_at']
+
+    def __str__(self):
+        return f"[{self.token_number}] {self.user.get_full_name()} — {self.date} {self.time_slot}"
+
+    def get_slot_label(self):
+        return dict(self.TIME_SLOTS).get(self.time_slot, self.time_slot)

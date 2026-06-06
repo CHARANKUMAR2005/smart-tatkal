@@ -228,6 +228,7 @@ tbody tr:hover{background:var(--gray-50)}
       <a href="/applications/" class="nav-link">My Applications</a>
       {% endif %}
       <a href="/track/" class="nav-link">🚚 Track</a>
+      <a href="/book-slot/" class="nav-link">🎫 Book Slot</a>
       {% if user.role in 'staff,admin' %}
       <a href="/staff/applications/" class="nav-link">Applications Queue</a>
       <a href="/admin/analytics/" class="nav-link">📊 Analytics</a>
@@ -263,6 +264,7 @@ tbody tr:hover{background:var(--gray-50)}
     <a href="/applications/" class="sidebar-link {% block s_apps %}{% endblock %}"><span class="icon">📋</span> My Applications</a>
     <a href="/notifications/" class="sidebar-link"><span class="icon">🔔</span> Notifications</a>
     <a href="/track/" class="sidebar-link"><span class="icon">🚚</span> Track Certificate</a>
+    <a href="/book-slot/" class="sidebar-link"><span class="icon">🎫</span> Book Slot</a>
     {% elif user.role == 'staff' %}
     <div class="sidebar-section">Staff</div>
     <a href="/dashboard/" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
@@ -270,6 +272,7 @@ tbody tr:hover{background:var(--gray-50)}
     <a href="/staff/applications/?status=submitted" class="sidebar-link"><span class="icon">📥</span> New Applications</a>
     <a href="/staff/applications/?status=under_verification" class="sidebar-link"><span class="icon">🔍</span> Under Review</a>
     <a href="/staff/applications/?sort=tatkal" class="sidebar-link"><span class="icon">⚡</span> Tatkal Queue</a>
+    <a href="/book-slot/" class="sidebar-link"><span class="icon">🎫</span> Book Slot</a>
     <a href="/track/" class="sidebar-link"><span class="icon">🚚</span> Track Certificate</a>
     <a href="/admin/analytics/" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
     <a href="/admin/availability/" class="sidebar-link"><span class="icon">📅</span> Availability</a>
@@ -278,6 +281,7 @@ tbody tr:hover{background:var(--gray-50)}
     <div class="sidebar-section">Admin</div>
     <a href="/dashboard/" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
     <a href="/staff/applications/" class="sidebar-link"><span class="icon">📋</span> All Applications</a>
+    <a href="/book-slot/" class="sidebar-link"><span class="icon">🎫</span> Book Slot</a>
     <a href="/admin/analytics/" class="sidebar-link"><span class="icon">📊</span> Analytics</a>
     <a href="/admin/availability/" class="sidebar-link"><span class="icon">📅</span> Availability Calendar</a>
     <a href="/admin/reports/" class="sidebar-link"><span class="icon">📥</span> Reports</a>
