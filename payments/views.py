@@ -103,11 +103,16 @@ def payment_view(request, app_id):
         })
 
     # ── Real Razorpay payment ─────────────────────────────────────────────────
-    import razorpay
-    client = razorpay.Client(auth=(key_id, key_secret))
+    try:
+        import razorpay
+    except ImportError:
+        messages.error(request, 'Payment gateway is not available right now. Please try again in a minute.')
+        return redirect('application_detail', app_id=app_id)
+
     amount_paise = int(app.fee_amount * 100)  # Razorpay works in paise
 
     try:
+        client = razorpay.Client(auth=(key_id, key_secret))
         order = client.order.create({
             'amount': amount_paise,
             'currency': 'INR',
@@ -162,10 +167,14 @@ def razorpay_callback(request):
         messages.error(request, 'Payment record not found.')
         return redirect('dashboard')
 
-    import razorpay
-    client = razorpay.Client(
-        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-    )
+    try:
+        import razorpay
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+    except Exception as exc:
+        messages.error(request, f'Payment gateway error: {exc}')
+        return redirect('application_detail', app_id=payment.application.application_id)
 
     try:
         client.utility.verify_payment_signature({
