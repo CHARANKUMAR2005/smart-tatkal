@@ -2,13 +2,24 @@
 {% load cert_tags %}
 {% block title %}Apply Certificate{% endblock %}
 {% block s_apply %}active{% endblock %}
+{% block extra_css %}
+<style>
+.apply-layout{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
+@media(max-width:900px){.apply-layout{grid-template-columns:1fr}}
+@media(max-width:900px){.apply-layout>div:last-child .card:first-child{position:static!important;top:auto!important}}
+@media(max-width:600px){
+  #certGrid{grid-template-columns:1fr!important}
+  .service-grid{grid-template-columns:1fr!important}
+}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <div class="page-title">⚡ Apply for Certificate</div>
   <div class="page-subtitle">Choose your certificate type and service level</div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 360px;gap:24px">
+<div class="apply-layout">
 <div>
 <div class="card" style="margin-bottom:20px">
   <div class="card-header"><div class="card-title">Select Certificate Type</div></div>
@@ -30,7 +41,7 @@
 <div class="card" style="margin-bottom:20px">
   <div class="card-header"><div class="card-title">Service Type</div></div>
   <div class="card-body">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="service-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <label style="cursor:pointer">
         <input type="radio" name="service_radio" value="normal" checked style="display:none" onchange="setService(false)">
         <div id="service-normal" style="padding:16px;border:2px solid #2563eb;border-radius:10px;background:#eff6ff">

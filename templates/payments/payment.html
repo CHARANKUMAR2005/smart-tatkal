@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 {% block title %}Payment{% endblock %}
+{% block extra_css %}
+<style>
+.pay-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px}
+@media(max-width:768px){.pay-layout{grid-template-columns:1fr}}
+</style>
+{% endblock %}
 {% block content %}
 <div class="page-header">
   <div class="page-title">💳 Complete Payment</div>
   <div class="page-subtitle">Application #{{ application.get_short_id }} — {{ application.get_certificate_type_display }}</div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
+<div class="pay-layout">
 <div>
 <div class="card" style="margin-bottom:20px">
   <div class="card-header"><div class="card-title">Order Summary</div></div>

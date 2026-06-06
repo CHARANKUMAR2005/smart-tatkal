@@ -158,8 +158,41 @@ tbody tr:hover{background:var(--gray-50)}
 .tatkal-banner .icon{font-size:1.8rem}
 .tatkal-banner .text{font-size:0.9rem;opacity:0.9}
 .tatkal-banner .label{font-weight:800;font-size:1.1rem}
-/* RESPONSIVE */
-@media(max-width:768px){.sidebar{display:none}.main{padding:16px}.stats-grid{grid-template-columns:1fr 1fr}.nav-links{display:none}}
+/* HAMBURGER */
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;flex-direction:column;justify-content:center;gap:5px;flex-shrink:0}
+.hamburger span{display:block;width:22px;height:2px;background:rgba(255,255,255,0.85);border-radius:2px}
+/* MOBILE OVERLAY */
+.mobile-overlay{display:none;position:fixed;top:64px;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:149}
+.mobile-overlay.open{display:block}
+/* RESPONSIVE — 768px (tablet / mobile) */
+@media(max-width:768px){
+  .hamburger{display:flex}
+  .nav-links{display:none}
+  .nav-brand .brand-sub{display:none}
+  .nav-name,.nav-role{display:none}
+  .navbar-inner{padding:0 16px;gap:8px}
+  .sidebar{display:block;position:fixed;top:64px;left:0;width:260px;height:calc(100vh - 64px);z-index:150;transform:translateX(-100%);transition:transform 0.25s ease;box-shadow:var(--shadow-xl)}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .main{padding:16px;max-width:100%}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .chatbot-panel{width:calc(100vw - 16px);right:8px;bottom:84px}
+  .chatbot-btn{bottom:16px;right:16px}
+  .page-title{font-size:1.3rem}
+  .card-header{padding:14px 16px}
+  .card-body{padding:16px}
+  .tatkal-banner{flex-wrap:wrap}
+  .page-actions{flex-direction:column;align-items:stretch}
+  .page-actions .btn{justify-content:center}
+  .table-wrap{-webkit-overflow-scrolling:touch}
+}
+/* RESPONSIVE — 480px (small phones) */
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr}
+  .navbar-inner{padding:0 12px}
+  .nav-brand .brand-text{font-size:0.9rem}
+  .btn-lg{padding:12px 20px;font-size:0.9rem}
+  .chatbot-panel{width:calc(100vw - 12px);right:6px}
+}
 /* ANIMATIONS */
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeIn 0.3s ease forwards}
@@ -172,6 +205,9 @@ tbody tr:hover{background:var(--gray-50)}
 {% if user.is_authenticated %}
 <nav class="navbar">
   <div class="navbar-inner">
+    <button class="hamburger" onclick="toggleSidebar()" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
     <a href="/" class="nav-brand">
       <div class="emblem">
         {% if user.role == 'student' and user.student_profile.profile_photo %}
@@ -205,16 +241,17 @@ tbody tr:hover{background:var(--gray-50)}
       </a>
       <div class="nav-user">
         <div class="avatar">{{ user.first_name.0|upper }}{{ user.last_name.0|upper }}</div>
-        <span>{{ user.first_name }}</span>
-        <span style="opacity:0.5;font-size:0.75rem">({{ user.role }})</span>
+        <span class="nav-name">{{ user.first_name }}</span>
+        <span class="nav-role" style="opacity:0.5;font-size:0.75rem">({{ user.role }})</span>
       </div>
       <a href="/logout/" class="nav-link" style="color:rgba(255,255,255,0.6)">Sign out</a>
     </div>
   </div>
 </nav>
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
 
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     {% if user.role == 'student' %}
     <div class="sidebar-section">Student</div>
     <a href="/dashboard/" class="sidebar-link {% block s_dash %}{% endblock %}"><span class="icon">🏠</span> Dashboard</a>
@@ -278,6 +315,15 @@ tbody tr:hover{background:var(--gray-50)}
 {% endif %}
 
 <script>
+// Mobile sidebar
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('mobileOverlay').classList.toggle('open');
+}
+// Close sidebar on ESC
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.getElementById('sidebar').classList.remove('mobile-open');document.getElementById('mobileOverlay').classList.remove('open')}});
+// Close sidebar when a sidebar link is clicked on mobile
+document.querySelectorAll('.sidebar-link').forEach(function(l){l.addEventListener('click',function(){if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('mobile-open');document.getElementById('mobileOverlay').classList.remove('open')}})});
 // Chatbot
 function toggleChat(){const p=document.getElementById('chatPanel');p.classList.toggle('open')}
 function quickAsk(q){document.getElementById('chatInput').value=q;sendChat()}
