@@ -221,6 +221,33 @@ def razorpay_callback(request):
 
 
 @login_required
+def upload_payment_screenshot(request, app_id):
+    app = get_object_or_404(Application, application_id=app_id)
+    if request.user.role == 'student' and app.student.user != request.user:
+        raise Http404
+    if request.method == 'POST':
+        screenshot = request.FILES.get('screenshot')
+        if not screenshot:
+            messages.error(request, 'Please select an image file to upload.')
+            return redirect('application_detail', app_id=app_id)
+        allowed = ('image/jpeg', 'image/png', 'image/gif', 'image/webp')
+        if screenshot.content_type not in allowed:
+            messages.error(request, 'Only image files (JPG, PNG, GIF, WEBP) are allowed.')
+            return redirect('application_detail', app_id=app_id)
+        if screenshot.size > 5 * 1024 * 1024:
+            messages.error(request, 'File too large. Maximum size is 5 MB.')
+            return redirect('application_detail', app_id=app_id)
+        payment, _ = Payment.objects.get_or_create(
+            application=app,
+            defaults={'amount': app.fee_amount}
+        )
+        payment.payment_screenshot = screenshot
+        payment.save()
+        messages.success(request, 'Payment screenshot uploaded successfully. Admin will verify it.')
+    return redirect('application_detail', app_id=app_id)
+
+
+@login_required
 def download_receipt_view(request, payment_id):
     payment = get_object_or_404(
         Payment.objects.select_related('application__student__user'),

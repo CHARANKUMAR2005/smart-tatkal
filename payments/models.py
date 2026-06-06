@@ -17,6 +17,7 @@ class Payment(models.Model):
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='demo')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     gateway_response = models.JSONField(default=dict, blank=True)
+    payment_screenshot = models.ImageField(upload_to='payment_screenshots/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

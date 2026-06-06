@@ -118,9 +118,39 @@
     <div class="detail-grid-sm">
       <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">AMOUNT</div><div style="font-weight:700;font-size:1.1rem">₹{{ payment.amount }}</div></div>
       <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">STATUS</div><div class="badge badge-{{ payment.status }}" style="margin-top:4px">{{ payment.status|title }}</div></div>
-      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">TRANSACTION ID</div><div style="font-family:monospace;font-size:0.85rem">{{ payment.transaction_id }}</div></div>
+      <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">TRANSACTION ID</div><div style="font-family:monospace;font-size:0.85rem">{{ payment.transaction_id|default:"—" }}</div></div>
       <div><div style="font-size:0.75rem;color:#94a3b8;font-weight:700">METHOD</div><div>{{ payment.get_payment_method_display }}</div></div>
     </div>
+
+    <!-- Payment Screenshot: shown to admin/staff; upload form shown to student -->
+    {% if payment.payment_screenshot %}
+    <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px">
+      <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:8px">Payment Screenshot</div>
+      <a href="{{ payment.payment_screenshot.url }}" target="_blank">
+        <img src="{{ payment.payment_screenshot.url }}" alt="Payment Screenshot"
+             style="max-width:100%;max-height:300px;border-radius:6px;border:1px solid #e2e8f0;cursor:zoom-in">
+      </a>
+      <div style="font-size:0.75rem;color:#64748b;margin-top:6px">Click image to view full size</div>
+    </div>
+    {% endif %}
+
+    {% if request.user.role == 'student' %}
+    <div style="margin-top:12px;padding:12px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe">
+      <div style="font-size:0.8rem;font-weight:700;color:#1e40af;margin-bottom:8px">
+        📸 {{ payment.payment_screenshot|yesno:"Update,Upload" }} Payment Screenshot
+      </div>
+      <div style="font-size:0.78rem;color:#475569;margin-bottom:10px">
+        Upload a screenshot of your payment confirmation for admin verification.
+      </div>
+      <form method="post" action="{% url 'upload_payment_screenshot' application.application_id %}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        {% csrf_token %}
+        <input type="file" name="screenshot" accept="image/*" required
+               style="font-size:0.82rem;flex:1;min-width:0;border:1px solid #cbd5e1;border-radius:6px;padding:6px">
+        <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+      </form>
+    </div>
+    {% endif %}
+
     {% if payment.status == 'success' %}
     <div style="margin-top:12px">
       <a href="/receipt/{{ payment.payment_id }}/download/" class="btn btn-outline btn-sm">📄 Download Receipt</a>
@@ -129,7 +159,7 @@
   </div>
 </div>
 {% elif application.payment_status == 'pending' %}
-<div class="card" style="border:2px solid #f59e0b">
+<div class="card" style="border:2px solid #f59e0b;margin-bottom:20px">
   <div class="card-body" style="text-align:center;padding:24px">
     <div style="font-size:2rem;margin-bottom:8px">💳</div>
     <div style="font-weight:700;margin-bottom:4px">Payment Pending</div>
