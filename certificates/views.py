@@ -10,7 +10,6 @@ from .models import Application, Certificate, ApplicationStatusHistory, CERTIFIC
 from .utils import generate_verification_code, generate_qr_code, generate_certificate_pdf
 from .emails import send_status_email, send_test_email
 from accounts.models import StudentProfile, Institution, College
-from accounts.views import send_approval_email
 from notifications.models import Notification
 from payments.models import Payment
 import os
@@ -184,20 +183,16 @@ def update_status_view(request, app_id):
             link=f'/applications/{app.application_id}/'
         )
 
-        # Send email to student
-        if new_status in ('approved', 'rejected'):
-            send_approval_email(
-                student_email=app.student.user.email,
-                student_name=app.student.user.get_full_name() or app.student.user.username,
-                cert_type=app.get_certificate_type_display(),
-                app_id=app.application_id,
-                short_id=app.get_short_id(),
-                status=new_status,
-                remarks=staff_remarks,
-                note=note,
-            )
+        # Send email to student (synchronous — errors surface immediately in logs and UI)
+        email_ok = send_status_email(app, new_status, note=note, staff_remarks=staff_remarks)
 
         messages.success(request, f'Application status updated to: {app.get_status_display()}')
+        if new_status in ('approved', 'rejected') and not email_ok:
+            messages.warning(
+                request,
+                f'Status saved, but the email notification to {app.student.user.email} '
+                f'failed — check Render logs and verify your SENDER_EMAIL in environment settings.'
+            )
         return redirect('application_detail', app_id=app_id)
     
     return render(request, 'certificates/update_status.html', {'application': app})

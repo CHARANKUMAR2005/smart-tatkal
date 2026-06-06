@@ -7,7 +7,6 @@ Uses the same EmailMultiAlternatives path as the working OTP emails.
 import re
 import traceback
 import logging
-import threading
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -138,27 +137,23 @@ def _build_html(status, full_name, cert_type, short_id, mode, note, remarks, app
 def send_status_email(application, new_status, note='', staff_remarks=''):
     """
     Send approval or rejection email to the student.
-    Called from update_status_view after the DB is saved.
-    Never raises — all errors are printed to the runserver console.
+    Returns True on success, False on failure. Never raises.
+    Runs synchronously so errors surface immediately in the view and Render logs.
     """
-
-    # Only email for these two actions
     if new_status not in ('approved', 'rejected'):
-        print(f"[Email] '{new_status}' — no email sent (only approved/rejected trigger emails).")
-        return
+        return True
 
     student_user  = application.student.user
     student_email = (student_user.email or '').strip()
-    short_id      = application.get_short_id()
-    cert_type     = application.get_certificate_type_display()
-    full_name     = student_user.get_full_name() or student_user.username
-    mode          = '⚡ Tatkal' if application.is_tatkal else 'Normal'
-    app_url       = f"{settings.BASE_URL}/applications/{application.application_id}/"
-    from_email    = settings.DEFAULT_FROM_EMAIL
-
     if not student_email:
-        print(f"[Email] ⚠️  No email address for student '{student_user.username}' — skipping.")
-        return
+        logger.warning("[Email] No email address for student '%s' — skipped.", student_user.username)
+        return False
+
+    short_id  = application.get_short_id()
+    cert_type = application.get_certificate_type_display()
+    full_name = student_user.get_full_name() or student_user.username
+    mode      = '⚡ Tatkal' if application.is_tatkal else 'Normal'
+    app_url   = f"{settings.BASE_URL}/applications/{application.application_id}/"
 
     subject = (
         f"✅ Your {cert_type} Certificate is Approved – Tatkal CMS"
@@ -168,33 +163,23 @@ def send_status_email(application, new_status, note='', staff_remarks=''):
 
     html  = _build_html(new_status, full_name, cert_type, short_id,
                         mode, note, staff_remarks, app_url)
-    plain = re.sub(r'<[^>]+>', ' ', html)
-    plain = re.sub(r'\s+', ' ', plain).strip()
-
-    print(f"[Email] Queuing '{new_status}' notification → {student_email}")
+    plain = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', html)).strip()
 
     try:
         msg = EmailMultiAlternatives(
             subject    = subject,
             body       = plain,
-            from_email = from_email,
+            from_email = settings.DEFAULT_FROM_EMAIL,
             to         = [student_email],
         )
         msg.attach_alternative(html, 'text/html')
-
-        def _send():
-            try:
-                msg.send(fail_silently=False)
-                print(f"[Email] ✅ Sent '{new_status}' email to {student_email} for #{short_id}")
-            except Exception:
-                print(f"[Email] ❌ Failed to send email to {student_email}:")
-                print(traceback.format_exc())
-
-        threading.Thread(target=_send, daemon=True).start()
-
+        msg.send(fail_silently=False)
+        logger.info("[Email] ✅ Sent '%s' to %s for #%s", new_status, student_email, short_id)
+        return True
     except Exception:
-        print(f"[Email] ❌ Failed to queue email to {student_email}:")
-        print(traceback.format_exc())
+        logger.error("[Email] ❌ Failed for %s (#%s):\n%s",
+                     student_email, short_id, traceback.format_exc())
+        return False
 
 
 def send_test_email(to_email):

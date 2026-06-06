@@ -151,14 +151,16 @@ SUPPORT_EMAIL      = os.environ.get('SUPPORT_EMAIL', '')
 _sendgrid_key   = os.environ.get('SENDGRID_API_KEY', '')
 _gmail_user     = os.environ.get('GMAIL_HOST_USER', '')
 _gmail_password = os.environ.get('GMAIL_APP_PASSWORD', '')
+_sender_email   = os.environ.get('SENDER_EMAIL', '')   # verified sender for Brevo / SendGrid
 
 _brevo_key      = os.environ.get('BREVO_API_KEY', '')
 
 if _brevo_key:
     # Brevo via HTTPS API — no SMTP port needed, works on Render free tier.
+    # SENDER_EMAIL must match a verified sender in your Brevo account.
     EMAIL_BACKEND  = 'anymail.backends.brevo.EmailBackend'
     ANYMAIL        = {'BREVO_API_KEY': _brevo_key}
-    EMAIL_HOST_USER    = _gmail_user or 'noreply@tatkal.local'
+    EMAIL_HOST_USER    = _sender_email or _gmail_user or 'noreply@tatkal.local'
     DEFAULT_FROM_EMAIL = f'Tatkal CMS <{EMAIL_HOST_USER}>'
 elif _sendgrid_key:
     EMAIL_BACKEND  = 'anymail.backends.sendgrid.EmailBackend'
